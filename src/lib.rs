@@ -125,6 +125,14 @@ async fn do_async_del(key: &str) -> Result<RedisValue, tikv_client::Error> {
     Ok(value.into())
 }
 
+async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, tikv_client::Error> {
+    let client = unsafe { GLOBAL_CLIENT.as_ref().unwrap() };
+    let range = prefix.to_owned()..;
+    let result = client.scan(range, limit as u32).await?;
+    let values: Vec<_> = result.into_iter().map(|p| p.value().clone()).collect();
+    Ok(values.into())
+}
+
 // Commands
 fn async_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 2 {
@@ -218,7 +226,7 @@ fn tikv_load(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             Ok(data) => {
                 if data.len() > 0 {
                     let data_str = std::str::from_utf8(&data);
-                    tctx.lock().call("SET", &[key, data_str.unwrap()]);
+                    tctx.lock().call("SET", &[key, data_str.unwrap()]).unwrap();
                 }
                 tctx.reply(Ok(data.into()));
             },
@@ -229,7 +237,21 @@ fn tikv_load(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         };
     });
     Ok(RedisValue::NoReply)
+}
 
+fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 3 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let limit = args.next_u64()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_scan(key, limit).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
 }
 
 fn curl_mul(_: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -306,5 +328,6 @@ redis_module! {
         ["tikv.put", tikv_put, "", 0, 0, 0],
         ["tikv.del", tikv_del, "", 0, 0, 0],
         ["tikv.load", tikv_load, "", 0, 0, 0],
+        ["tikv.scan", tikv_scan, "", 0, 0, 0],
     ],
 }
