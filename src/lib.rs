@@ -80,7 +80,6 @@ where
     hdl.spawn(future);
 }
 
-
 // Async worker helpers
 async fn do_async_curl(url: &str) -> Result<RedisValue, reqwest::Error> {
     let client = reqwest::Client::new();
@@ -106,6 +105,12 @@ async fn do_async_get(key: &str) -> Result<RedisValue, tikv_client::Error> {
     let client = unsafe { GLOBAL_CLIENT.as_ref().unwrap() };
     let value = client.get(key.to_owned()).await?;
     Ok(value.into())
+}
+
+async fn do_async_get_raw(key: &str) -> Result<Vec<u8>, tikv_client::Error> {
+    let client = unsafe { GLOBAL_CLIENT.as_ref().unwrap() };
+    let value = client.get(key.to_owned()).await?;
+    Ok(value.unwrap())
 }
 
 async fn do_async_put(key: &str, val: &str) -> Result<RedisValue, tikv_client::Error> {
@@ -199,6 +204,34 @@ fn tikv_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
 }
 
+fn tikv_load(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let tctx = ThreadSafeContext::with_blocked_client(blocked_client);
+        let res = do_async_get_raw(key).await;
+        match res {
+            Ok(data) => {
+                if data.len() > 0 {
+                    let data_str = std::str::from_utf8(&data);
+                    tctx.lock().call("SET", &[key, data_str.unwrap()]);
+                }
+                tctx.reply(Ok(data.into()));
+            },
+            Err(err) => {
+                let err_msg = format!("error: {}", err);
+                tctx.reply(Ok(err_msg.into()));
+            },
+        };
+    });
+    Ok(RedisValue::NoReply)
+
+}
+
 fn curl_mul(_: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
@@ -272,5 +305,6 @@ redis_module! {
         ["tikv.get", tikv_get, "", 0, 0, 0],
         ["tikv.put", tikv_put, "", 0, 0, 0],
         ["tikv.del", tikv_del, "", 0, 0, 0],
+        ["tikv.load", tikv_load, "", 0, 0, 0],
     ],
 }
