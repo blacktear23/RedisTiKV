@@ -16,4 +16,5 @@ cargo build
 > tikv.get key
 > tikv.load key
 > tikv.del key
+> tikv.scan prefix 10
 ```
