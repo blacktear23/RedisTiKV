@@ -17,7 +17,7 @@ static mut GLOBAL_RUNNING: Option<Arc<Mutex<u32>>> = None;
 static mut GLOBAL_CLIENT: Option<RawClient> = None;
 
 // Initial tokio main executor in other thread
-fn curl_init(_ctx: &Context, _args: &Vec<RedisString>) -> Status {
+fn tikv_init(_ctx: &Context, _args: &Vec<RedisString>) -> Status {
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
@@ -44,7 +44,7 @@ fn curl_init(_ctx: &Context, _args: &Vec<RedisString>) -> Status {
     Status::Ok
 }
 
-fn curl_deinit(_ctx: &Context) -> Status {
+fn tikv_deinit(_ctx: &Context) -> Status {
     unsafe {
         let data = GLOBAL_RUNNING.as_ref().unwrap();
         *data.lock().unwrap() = 0;
@@ -229,7 +229,7 @@ fn curl_echo(_: &Context, args: Vec<RedisString>) -> RedisResult {
     return Ok(response.into());
 }
 
-fn curl_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+fn thread_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -258,16 +258,16 @@ fn curl_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
 // register functions
 redis_module! {
-    name: "curl",
+    name: "tikv",
     version: 1,
     data_types: [],
-    init: curl_init,
-    deinit: curl_deinit,
+    init: tikv_init,
+    deinit: tikv_deinit,
     commands: [
-        ["curl.mul", curl_mul, "", 0, 0, 0],
-        ["curl.echo", curl_echo, "", 0, 0, 0],
-        ["curl.curl", curl_curl, "", 0, 0, 0],
-        ["curl.async", async_curl, "", 0, 0, 0],
+        ["tikv.mul", curl_mul, "", 0, 0, 0],
+        ["tikv.echo", curl_echo, "", 0, 0, 0],
+        ["tikv.curl", async_curl, "", 0, 0, 0],
+        ["tikv.tcurl", thread_curl, "", 0, 0, 0],
         ["tikv.conn", tikv_connect, "", 0, 0, 0],
         ["tikv.get", tikv_get, "", 0, 0, 0],
         ["tikv.put", tikv_put, "", 0, 0, 0],

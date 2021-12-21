@@ -1,11 +1,11 @@
 [package]
-name = "rediscurl"
+name = "redistikv"
 version = "99.99.99"
 edition = "2021"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
-name = "redcurl"
+name = "redistikv"
 
 [dependencies]
 redis-module = { version="0.25", features = ["experimental-api"] }

@@ -1289,7 +1289,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "rediscurl"
+name = "redistikv"
 version = "99.99.99"
 dependencies = [
  "lazy_static",
