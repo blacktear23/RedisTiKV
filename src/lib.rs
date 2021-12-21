@@ -129,7 +129,7 @@ async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, tikv_clie
     let client = unsafe { GLOBAL_CLIENT.as_ref().unwrap() };
     let range = prefix.to_owned()..;
     let result = client.scan(range, limit as u32).await?;
-    let values: Vec<_> = result.into_iter().map(|p| p.value().clone()).collect();
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([Into::<Vec<u8>>::into(p.key().clone()), Into::<Vec<u8>>::into(p.value().clone())])).collect();
     Ok(values.into())
 }
 
