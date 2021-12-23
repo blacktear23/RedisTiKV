@@ -129,6 +129,21 @@ pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     Ok(RedisValue::NoReply)
 }
 
+pub fn tikv_del_range(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 3 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key_start = args.next_str()?;
+    let key_end = args.next_str()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_delete_range(key_start, key_end).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
 pub fn curl_mul(_: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
