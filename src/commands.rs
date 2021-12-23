@@ -28,16 +28,34 @@ pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
         return Err(RedisError::WrongArity);
     }
-    let mut pd_addr: &str = "";
+    let mut addrs: Vec<&str> = Vec::new();
 
-    if args.len() > 1 {
-        let mut args = args.into_iter().skip(1);
-        pd_addr = args.next_str()?;
+    if args.len() == 1 {
+        addrs.push("127.0.0.1:2379")
+    } else {
+        let _ = args.into_iter().skip(1).map(|i| {
+            let addr = i.try_as_str();
+            match addr {
+                Ok(val) => {
+                    addrs.push(val);
+                },
+                Err(_) => {}
+            };
+        });
     }
 
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
-        let res = do_async_connect(pd_addr).await;
+        let res = do_async_connect(addrs).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_close(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_close().await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

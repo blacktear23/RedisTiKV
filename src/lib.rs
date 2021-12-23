@@ -34,5 +34,6 @@ redis_module! {
         ["tikv.delrange", tikv_del_range, "", 0, 0, 0],
         ["tikv.load", tikv_load, "", 0, 0, 0],
         ["tikv.scan", tikv_scan, "", 0, 0, 0],
+        ["tikv.close", tikv_close, "", 0, 0, 0],
     ],
 }

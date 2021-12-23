@@ -13,13 +13,7 @@ pub fn get_client() -> Result<Box<RawClient>, tikv_client::Error> {
     }
 }
 
-pub async fn do_async_connect(pd_addr: &str) -> Result<RedisValue, tikv_client::Error> {
-    let mut addrs = Vec::new();
-    if pd_addr == "" {
-        addrs.push("127.0.0.1:2379");
-    } else {
-        addrs.push(pd_addr);
-    }
+pub async fn do_async_connect(addrs: Vec<&str>) -> Result<RedisValue, tikv_client::Error> {
     let client = RawClient::new(addrs).await?;
     GLOBAL_CLIENT.write().unwrap().replace(Box::new(client));
     Ok("OK".into())
@@ -62,4 +56,10 @@ pub async fn do_async_delete_range(key_start: &str, key_end: &str) -> Result<Red
     let range = key_start.to_owned()..key_end.to_owned();
     let result = client.delete_range(range).await?;
     Ok(result.into())
+}
+
+pub async fn do_async_close() -> Result<RedisValue, tikv_client::Error> {
+    let _ = get_client()?;
+    *GLOBAL_CLIENT.write().unwrap() = None;
+    Ok("Closed".into())
 }

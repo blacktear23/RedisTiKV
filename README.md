@@ -26,7 +26,7 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 
 ## Commands
 
-* tikv.conn [PDSERVER]: connect to TiKV cluster, PDSERVER is optional default is 127.0.0.1:2379
+* tikv.conn [PDSERVERADDR] [PDSERVERADDR] ... : connect to TiKV cluster, PDSERVERADDR is optional default is 127.0.0.1:2379
 * tikv.put [KEY] [VALUE]: put a Key-Value pair into TiKV cluster.
 * tikv.get [KEY]: read a key's value from TiKV cluster.
 * tikv.del [KEY]: delete a key from TiKV cluster.
