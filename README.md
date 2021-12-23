@@ -27,12 +27,15 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 ## Commands
 
 * tikv.conn [PDSERVERADDR] [PDSERVERADDR] ... : connect to TiKV cluster, PDSERVERADDR is optional default is 127.0.0.1:2379
-* tikv.put [KEY] [VALUE]: put a Key-Value pair into TiKV cluster.
+* tikv.set [KEY] [VALUE]: put a Key-Value pair into TiKV cluster.
 * tikv.get [KEY]: read a key's value from TiKV cluster.
 * tikv.del [KEY]: delete a key from TiKV cluster.
 * tikv.load [KEY]: read a key's value from TiKV cluster and use SET command save the key-value pair into Redis memory.
 * tikv.scan [STARTKEY] [ENDKEY] [LIMIT]: scan TiKV cluster data's using given range `STARTKEY` to `ENDKEY` and return `LIMIT` rows. If `ENDKEY` is ignored the range is from `STARTKEY` to end.
 * tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
+* tikv.mget [KEY1] [KEY2] ...: same as Redis MGET.
+* tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: same as Redis MSET.
+
 
 ## Benchmark
 
