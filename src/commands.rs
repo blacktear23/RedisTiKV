@@ -28,20 +28,11 @@ pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
         return Err(RedisError::WrongArity);
     }
-    let mut addrs: Vec<&str> = Vec::new();
-
+    let mut addrs: Vec<String> = Vec::new();
     if args.len() == 1 {
-        addrs.push("127.0.0.1:2379")
+        addrs.push(String::from("127.0.0.1:2379"));
     } else {
-        let _ = args.into_iter().skip(1).map(|i| {
-            let addr = i.try_as_str();
-            match addr {
-                Ok(val) => {
-                    addrs.push(val);
-                },
-                Err(_) => {}
-            };
-        });
+        addrs = args.into_iter().skip(1).map(|s| s.to_string()).collect();
     }
 
     let blocked_client = ctx.block_client();
@@ -170,6 +161,20 @@ pub fn tikv_del_range(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
         let res = do_async_delete_range(key_start, key_end).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_batch_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+
+    let keys: Vec<String> = args.into_iter().skip(1).map(|s| s.to_string()).collect();
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_batch_get(keys).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

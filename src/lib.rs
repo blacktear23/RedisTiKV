@@ -35,5 +35,6 @@ redis_module! {
         ["tikv.load", tikv_load, "", 0, 0, 0],
         ["tikv.scan", tikv_scan, "", 0, 0, 0],
         ["tikv.close", tikv_close, "", 0, 0, 0],
+        ["tikv.mget", tikv_batch_get, "", 0, 0, 0],
     ],
 }
