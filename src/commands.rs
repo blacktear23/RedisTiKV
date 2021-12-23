@@ -136,13 +136,26 @@ pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
+    let num_args = args.len();
     let mut args = args.into_iter().skip(1);
-    let key = args.next_str()?;
+    let start_key = args.next_str()?;
+    let end_key: &str;
+    if num_args > 3 {
+        end_key = args.next_str()?;
+    } else {
+        end_key = "";
+    }
     let limit = args.next_u64()?;
+
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
-        let res = do_async_scan(key, limit).await;
-        redis_resp(blocked_client, res);
+        if num_args == 3 {
+            let res = do_async_scan(start_key, limit).await;
+            redis_resp(blocked_client, res);
+        } else {
+            let res = do_async_scan_range(start_key, end_key, limit).await;
+            redis_resp(blocked_client, res);
+        }
     });
     Ok(RedisValue::NoReply)
 }

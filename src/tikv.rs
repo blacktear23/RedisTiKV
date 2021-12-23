@@ -51,6 +51,14 @@ pub async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, tikv_
     Ok(values.into())
 }
 
+pub async fn do_async_scan_range(start_key: &str, end_key: &str, limit: u64) -> Result<RedisValue, tikv_client::Error> {
+    let client = get_client()?;
+    let range = start_key.to_owned()..end_key.to_owned();
+    let result = client.scan(range, limit as u32).await?;
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([Into::<Vec<u8>>::into(p.key().clone()), Into::<Vec<u8>>::into(p.value().clone())])).collect();
+    Ok(values.into())
+}
+
 pub async fn do_async_delete_range(key_start: &str, key_end: &str) -> Result<RedisValue, tikv_client::Error> {
     let client = get_client()?;
     let range = key_start.to_owned()..key_end.to_owned();

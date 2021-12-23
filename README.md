@@ -31,7 +31,7 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 * tikv.get [KEY]: read a key's value from TiKV cluster.
 * tikv.del [KEY]: delete a key from TiKV cluster.
 * tikv.load [KEY]: read a key's value from TiKV cluster and use SET command save the key-value pair into Redis memory.
-* tikv.scan [PREFIX] [LIMIT]: scan TiKV cluster data's using given `PREFIX` and return `LIMIT` rows.
+* tikv.scan [STARTKEY] [ENDKEY] [LIMIT]: scan TiKV cluster data's using given range `STARTKEY` to `ENDKEY` and return `LIMIT` rows. If `ENDKEY` is ignored the range is from `STARTKEY` to end.
 * tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
 
 ## Benchmark
