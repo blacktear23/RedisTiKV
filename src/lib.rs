@@ -1,5 +1,8 @@
 #[macro_use]
 extern crate redis_module;
+#[macro_use]
+extern crate lazy_static;
+
 extern crate tokio;
 extern crate reqwest;
 extern crate tikv_client;

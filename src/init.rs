@@ -1,4 +1,3 @@
-
 use std::thread;
 use tokio::time::{sleep, Duration};
 use std::sync::{Arc, Mutex};
@@ -6,26 +5,24 @@ use tikv_client::RawClient;
 use redis_module::{Context, RedisString, Status };
 use tokio::runtime::{ Runtime, Handle };
 
-pub static mut GLOBAL_RUNNING: Option<Arc<Mutex<u32>>> = None;
-pub static mut GLOBAL_RT: Option<Handle> = None;
-pub static mut GLOBAL_CLIENT: Option<RawClient> = None;
+lazy_static! {
+    pub static ref GLOBAL_RT: Arc<Mutex<Option<Box<Handle>>>> = Arc::new(Mutex::new(None));
+    pub static ref GLOBAL_CLIENT: Arc<Mutex<Option<Box<RawClient>>>> = Arc::new(Mutex::new(None));
+    static ref GLOBAL_RUNNING: Arc<Mutex<u32>> = Arc::new(Mutex::new(1));
+}
 
 // Initial tokio main executor in other thread
 pub fn tikv_init(_ctx: &Context, _args: &Vec<RedisString>) -> Status {
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
-        let running =  Arc::new(Mutex::new(1));
-        unsafe {
-            GLOBAL_RT.replace(handle);
-            GLOBAL_RUNNING.replace(running);
-        }
+        GLOBAL_RT.lock().unwrap().replace(Box::new(handle));
+        *GLOBAL_RUNNING.lock().unwrap() = 1;
         println!("Tokio Runtime Created!");
         runtime.block_on(async {
             loop {
                 sleep(Duration::from_secs(1)).await;
-                let running = unsafe { *GLOBAL_RUNNING.as_ref().unwrap().lock().unwrap() };
-                if running == 0 {
+                if *GLOBAL_RUNNING.lock().unwrap() == 0 {
                     return;
                 }
             }
@@ -39,10 +36,7 @@ pub fn tikv_init(_ctx: &Context, _args: &Vec<RedisString>) -> Status {
 }
 
 pub fn tikv_deinit(_ctx: &Context) -> Status {
-    unsafe {
-        let data = GLOBAL_RUNNING.as_ref().unwrap();
-        *data.lock().unwrap() = 0;
-    };
+    *GLOBAL_RUNNING.lock().unwrap() = 0;
     println!("Set Runnint to False");
     Status::Ok
 }

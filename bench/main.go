@@ -46,12 +46,14 @@ func main() {
 		go w.Run()
 	}
 
+	tests := 100000
+
 	conn := pool.Get()
-	fmt.Printf("Run tikv.put 10000\n")
+	fmt.Printf("Run tikv.put %d\n", tests)
 	start_at := time.Now()
 	wg := sync.WaitGroup{}
-	wg.Add(10000)
-	for i := 0; i < 10000; i++ {
+	wg.Add(tests)
+	for i := 0; i < tests; i++ {
 		key := "pkey-" + strconv.Itoa(i)
 		value := "pvaluedata-" + strconv.Itoa(i) + "-123456789809"
 		queue <- Job{
@@ -64,11 +66,11 @@ func main() {
 	end_at := time.Now()
 	fmt.Printf("Time: %v\n", end_at.Sub(start_at))
 
-	fmt.Printf("Run tikv.get 10000\n")
+	fmt.Printf("Run tikv.get %d\n", tests)
 	start_at = time.Now()
 	wg = sync.WaitGroup{}
-	wg.Add(10000)
-	for i := 0; i < 10000; i++ {
+	wg.Add(tests)
+	for i := 0; i < tests; i++ {
 		key := "pkey-" + strconv.Itoa(i)
 		queue <- Job{
 			Name: "tikv.get",
@@ -80,9 +82,9 @@ func main() {
 	end_at = time.Now()
 	fmt.Printf("Time: %v\n", end_at.Sub(start_at))
 
-	fmt.Printf("Run set 10000\n")
+	fmt.Printf("Run set %d\n", tests)
 	start_at = time.Now()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < tests; i++ {
 		key := "key-" + strconv.Itoa(i)
 		value := "valuedata-" + strconv.Itoa(i) + "-123456789809"
 		conn.Do("set", key, value)
@@ -90,9 +92,9 @@ func main() {
 	end_at = time.Now()
 	fmt.Printf("Time: %v\n", end_at.Sub(start_at))
 
-	fmt.Printf("Run get 10000\n")
+	fmt.Printf("Run get %d\n", tests)
 	start_at = time.Now()
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < tests; i++ {
 		key := "key-" + strconv.Itoa(i)
 		conn.Do("get", key)
 	}

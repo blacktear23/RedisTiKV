@@ -26,6 +26,7 @@ where
     T: Future + Send + 'static,
     T::Output: Send + 'static,
 {
-    let hdl = unsafe { GLOBAL_RT.as_ref().unwrap() };
+    let tmp = GLOBAL_RT.lock().unwrap();
+    let hdl = tmp.as_ref().unwrap();
     hdl.spawn(future);
 }
