@@ -1,5 +1,5 @@
 use redis_module::{ RedisValue };
-use tikv_client::{RawClient, Error, Key};
+use tikv_client::{RawClient, Error, Key, KvPair};
 use crate::init::GLOBAL_CLIENT;
 use std::collections::HashMap;
 
@@ -94,4 +94,10 @@ pub async fn do_async_batch_get(keys: Vec<String>) -> Result<RedisValue, Error> 
         }
     }).collect();
     Ok(values.into())
+}
+
+pub async fn do_async_batch_put(kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
+    let client = get_client()?;
+    let result = client.batch_put(kvs).await?;
+    Ok(result.into())
 }
