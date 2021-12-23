@@ -34,8 +34,8 @@ pub async fn do_async_get_raw(key: &str) -> Result<Vec<u8>, Error> {
 
 pub async fn do_async_put(key: &str, val: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let value = client.put(key.to_owned(), val.to_owned()).await?;
-    Ok(value.into())
+    let _ = client.put(key.to_owned(), val.to_owned()).await?;
+    Ok("OK".into())
 }
 
 pub async fn do_async_del(key: &str) -> Result<RedisValue, Error> {
@@ -98,6 +98,6 @@ pub async fn do_async_batch_get(keys: Vec<String>) -> Result<RedisValue, Error> 
 
 pub async fn do_async_batch_put(kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let result = client.batch_put(kvs).await?;
-    Ok(result.into())
+    let _ = client.batch_put(kvs).await?;
+    Ok("OK".into())
 }
