@@ -38,10 +38,10 @@ pub async fn do_async_put(key: &str, val: &str) -> Result<RedisValue, Error> {
     Ok("OK".into())
 }
 
-pub async fn do_async_del(key: &str) -> Result<RedisValue, Error> {
+pub async fn do_async_batch_del(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let value = client.delete(key.to_owned()).await?;
-    Ok(value.into())
+    let _ = client.batch_delete(keys).await?;
+    Ok("OK".into())
 }
 
 pub async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, Error> {
