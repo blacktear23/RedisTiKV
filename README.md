@@ -35,7 +35,7 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 * tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
 * tikv.mget [KEY1] [KEY2] ...: same as Redis MGET.
 * tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: same as Redis MSET.
-
+* pd.members [PDSERVERADDR]: request PD to get cluster members data.
 
 ## Benchmark
 

@@ -1,29 +1,7 @@
-use std::thread;
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, ThreadSafeContext };
 use crate::utils::{ redis_resp, tokio_spawn };
 use crate::tikv::*;
 use tikv_client::{KvPair};
-
-pub async fn do_async_curl(url: &str) -> Result<RedisValue, reqwest::Error> {
-    let client = reqwest::Client::new();
-    let text = client.get(url).send().await?.text().await?;
-    Ok(text.into())
-}
-
-pub fn async_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-    let mut args = args.into_iter().skip(1);
-    let url = args.next_str()?;
-
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_curl(url).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
@@ -197,61 +175,6 @@ pub fn tikv_batch_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     tokio_spawn(async move {
         let res = do_async_batch_put(kvs).await;
         redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn curl_mul(_: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-
-    let nums = args
-        .into_iter()
-        .skip(1)
-        .map(|s| s.parse_integer())
-        .collect::<Result<Vec<i64>, RedisError>>()?;
-
-    let product = nums.iter().product();
-
-    let mut response = Vec::from(nums);
-    response.push(product);
-
-    return Ok(response.into());
-}
-
-pub fn curl_echo(_: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-
-    let mut args = args.into_iter().skip(1);
-
-    let response = args.next_str()?;
-    return Ok(response.into());
-}
-
-pub fn thread_curl(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-    let mut args = args.into_iter().skip(1);
-    let url = args.next_str().unwrap();
-
-    let blocked_client = ctx.block_client();
-    thread::spawn(move || {
-        let thread_ctx = ThreadSafeContext::with_blocked_client(blocked_client);
-        let client = reqwest::blocking::Client::new();
-        let res = client.get(url).send();
-        match res {
-            Err(err) => {
-                let err_msg = format!("error: {}", err);
-                thread_ctx.reply(Ok(err_msg.into()));
-            },
-            Ok(body) => {
-                thread_ctx.reply(Ok(body.text().unwrap().into()));
-            }
-        }
     });
     Ok(RedisValue::NoReply)
 }

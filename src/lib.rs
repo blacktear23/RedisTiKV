@@ -11,9 +11,11 @@ mod init;
 mod utils;
 mod commands;
 mod tikv;
+mod pd;
 
 use init::{ tikv_init, tikv_deinit };
 use commands::*;
+use pd::*;
 
 // register functions
 redis_module! {
@@ -23,10 +25,6 @@ redis_module! {
     init: tikv_init,
     deinit: tikv_deinit,
     commands: [
-        ["tikv.mul", curl_mul, "", 0, 0, 0],
-        ["tikv.echo", curl_echo, "", 0, 0, 0],
-        ["tikv.curl", async_curl, "", 0, 0, 0],
-        ["tikv.tcurl", thread_curl, "", 0, 0, 0],
         ["tikv.conn", tikv_connect, "", 0, 0, 0],
         ["tikv.get", tikv_get, "", 0, 0, 0],
         ["tikv.put", tikv_put, "", 0, 0, 0],
@@ -39,5 +37,6 @@ redis_module! {
         ["tikv.mget", tikv_batch_get, "", 0, 0, 0],
         ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
         ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
+        ["pd.members", pd_members, "", 0, 0, 0],
     ],
 }
