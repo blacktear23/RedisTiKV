@@ -58,6 +58,7 @@ pub fn tikv_init(ctx: &Context, _args: &Vec<RedisString>) -> Status {
         println!("Tokio Runtime 2 Shutdown");
     });
 
+    // Try to replace system command automatically
     try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
     try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
 

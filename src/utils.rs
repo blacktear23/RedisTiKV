@@ -38,6 +38,7 @@ where
     hdl.spawn(future);
 }
 
+// Try to register a redis command, if got error, just log a warning.
 #[macro_export]
 macro_rules! try_redis_command {
     ($ctx:expr,
