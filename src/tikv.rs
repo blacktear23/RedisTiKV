@@ -3,6 +3,14 @@ use tikv_client::{RawClient, Error, Key, KvPair};
 use crate::init::GLOBAL_CLIENT;
 use std::collections::HashMap;
 
+pub fn resp_ok() -> RedisValue {
+    RedisValue::SimpleStringStatic("OK")
+}
+
+pub fn resp_sstr(val: &'static str) -> RedisValue {
+    RedisValue::SimpleStringStatic(val)
+}
+
 pub fn get_client() -> Result<Box<RawClient>, Error> {
     let guard = GLOBAL_CLIENT.read().unwrap();
     match guard.as_ref() {
@@ -10,14 +18,14 @@ pub fn get_client() -> Result<Box<RawClient>, Error> {
             let client = val.clone();
             Ok(client)
         },
-        None => Err(tikv_client::Error::StringError(String::from("Not connected")))
+        None => Err(tikv_client::Error::StringError(String::from("TiKV Not connected")))
     }
 }
 
 pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
     let client = RawClient::new(addrs).await?;
     GLOBAL_CLIENT.write().unwrap().replace(Box::new(client));
-    Ok("OK".into())
+    Ok(resp_ok())
 }
 
 pub async fn do_async_get(key: &str) -> Result<RedisValue, Error> {
@@ -35,13 +43,13 @@ pub async fn do_async_get_raw(key: &str) -> Result<Vec<u8>, Error> {
 pub async fn do_async_put(key: &str, val: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
     let _ = client.put(key.to_owned(), val.to_owned()).await?;
-    Ok("OK".into())
+    Ok(resp_ok())
 }
 
 pub async fn do_async_batch_del(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = get_client()?;
     let _ = client.batch_delete(keys).await?;
-    Ok("OK".into())
+    Ok(resp_ok())
 }
 
 pub async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, Error> {
@@ -70,7 +78,7 @@ pub async fn do_async_delete_range(key_start: &str, key_end: &str) -> Result<Red
 pub async fn do_async_close() -> Result<RedisValue, Error> {
     let _ = get_client()?;
     *GLOBAL_CLIENT.write().unwrap() = None;
-    Ok("Closed".into())
+    Ok(resp_sstr("Closed"))
 }
 
 pub async fn do_async_batch_get(keys: Vec<String>) -> Result<RedisValue, Error> {
