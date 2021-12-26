@@ -112,7 +112,7 @@ pub async fn do_async_batch_get(keys: Vec<String>) -> Result<RedisValue, Error> 
 pub async fn do_async_batch_put(kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
     let client = get_client()?;
     let _ = client.batch_put(kvs).await?;
-    Ok("OK".into())
+    Ok(resp_ok())
 }
 
 pub async fn do_async_exists(keys: Vec<String>) -> Result<RedisValue, Error> {

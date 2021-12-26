@@ -2,6 +2,7 @@ use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisS
 use crate::utils::{ redis_resp, tokio_spawn };
 use crate::tikv::*;
 use tikv_client::{KvPair};
+use crate::encoding::{DataType, encode_key};
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
@@ -168,7 +169,7 @@ pub fn tikv_batch_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     for _i in 0..num_kvs/2 {
         let key = args.next_str()?;
         let value = args.next_str()?;
-        let kv = KvPair::from((key.to_owned(), value.to_owned()));
+        let kv = KvPair::from((encode_key(DataType::Raw, key).to_owned(), value.to_owned()));
         kvs.push(kv);
     }
     let blocked_client = ctx.block_client();

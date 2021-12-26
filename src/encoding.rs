@@ -8,7 +8,7 @@ fn get_prefix(tp: DataType) -> String {
         DataType::Raw => "R",
         DataType::Hash => "H",
     };
-    format!("$REDIS_{}", dt_prefix)
+    format!("$R_{}", dt_prefix)
 }
 
 pub fn encode_key(tp: DataType, key: &str) -> String {
@@ -27,5 +27,5 @@ pub fn encode_endkey(tp: DataType) -> String {
 }
 
 pub fn decode_key(key: Vec<u8>) -> Vec<u8> {
-    key.clone().drain(9..).collect()
+    key.clone().drain(5..).collect()
 }
