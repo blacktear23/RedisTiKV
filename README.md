@@ -82,3 +82,21 @@ Then the `GET` and `SET` command is replaced by `TIKV.GET` and `TIKV.SET`.
 * MGET
 * EXISTS
 * DEL
+
+## About Key Encoding
+
+If we not encode KEY, you can get and set any TiKV data. So this is very danger for using RedisModule with a TiKV which provide data for TiDB service. And without key encoding the module can not support multi data type such as Hash or List. So add a Key prefix is safe than without it and we can support more data type. The current key encoding format is:
+
+```
+$REDIS_[DATATYPE(1Byte)]_[KEY(nByte)]
+```
+
+As the description it will use `$REDIS_` as fixed prefix for RedisModule used data. `DATATYPE` use 1 Byte to determin the data type for value. Such as Raw, Hash and etc.
+
+Data Types may porvided:
+
+* Raw: Raw type key, used by GET, SET serise commands, use char `R`
+* Hash: Hash type key, used by HGET, HSET serise commands, use char `H`
+* List: List type key, used by LPOP, LPUSH serise commands, use char `L`
+
+**Note:** Key encoding is a draft. So it may change in future.
