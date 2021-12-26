@@ -2,6 +2,7 @@ use redis_module::{ RedisValue };
 use tikv_client::{RawClient, Error, Key, KvPair};
 use crate::init::GLOBAL_CLIENT;
 use std::collections::HashMap;
+use crate::encoding::*;
 
 pub fn resp_ok() -> RedisValue {
     RedisValue::SimpleStringStatic("OK")
@@ -30,47 +31,51 @@ pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
 
 pub async fn do_async_get(key: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let value = client.get(key.to_owned()).await?;
+    let value = client.get(encode_key(DataType::Raw, key)).await?;
     Ok(value.into())
 }
 
 pub async fn do_async_get_raw(key: &str) -> Result<Vec<u8>, Error> {
     let client = get_client()?;
-    let value = client.get(key.to_owned()).await?;
+    let value = client.get(encode_key(DataType::Raw, key)).await?;
     Ok(value.unwrap())
 }
 
 pub async fn do_async_put(key: &str, val: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let _ = client.put(key.to_owned(), val.to_owned()).await?;
+    let _ = client.put(encode_key(DataType::Raw, key), val.to_owned()).await?;
     Ok(resp_ok())
 }
 
 pub async fn do_async_batch_del(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let _ = client.batch_delete(keys).await?;
+    let _ = client.batch_delete(encode_keys(DataType::Raw, keys)).await?;
     Ok(resp_ok())
 }
 
 pub async fn do_async_scan(prefix: &str, limit: u64) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let range = prefix.to_owned()..;
+    let range = encode_key(DataType::Raw, prefix)..encode_endkey(DataType::Raw);
     let result = client.scan(range, limit as u32).await?;
-    let values: Vec<_> = result.into_iter().map(|p| Vec::from([Into::<Vec<u8>>::into(p.key().clone()), Into::<Vec<u8>>::into(p.value().clone())])).collect();
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([
+            decode_key(Into::<Vec<u8>>::into(p.key().to_owned())),
+            Into::<Vec<u8>>::into(p.value().clone())])).collect();
     Ok(values.into())
 }
 
 pub async fn do_async_scan_range(start_key: &str, end_key: &str, limit: u64) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let range = start_key.to_owned()..end_key.to_owned();
+    let range = encode_key(DataType::Raw, start_key)..encode_key(DataType::Raw, end_key);
     let result = client.scan(range, limit as u32).await?;
-    let values: Vec<_> = result.into_iter().map(|p| Vec::from([Into::<Vec<u8>>::into(p.key().clone()), Into::<Vec<u8>>::into(p.value().clone())])).collect();
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([
+            decode_key(Into::<Vec<u8>>::into(p.key().to_owned())),
+            Into::<Vec<u8>>::into(p.value().clone())])).collect();
     Ok(values.into())
 }
 
-pub async fn do_async_delete_range(key_start: &str, key_end: &str) -> Result<RedisValue, Error> {
+pub async fn do_async_delete_range(start_key: &str, end_key: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let range = key_start.to_owned()..key_end.to_owned();
+    let range = encode_key(DataType::Raw, start_key)..encode_key(DataType::Raw, end_key);
     let result = client.delete_range(range).await?;
     Ok(result.into())
 }
@@ -83,10 +88,10 @@ pub async fn do_async_close() -> Result<RedisValue, Error> {
 
 pub async fn do_async_batch_get(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let result = client.batch_get(keys.iter().map(|k| {Key::from(k.to_owned())})).await?;
+    let result = client.batch_get(encode_keys(DataType::Raw, keys.clone()).iter().map(|k| {Key::from(k.to_owned())})).await?;
     let mut kvret: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
     result.into_iter().for_each(|p| {
-        let key = Into::<Vec<u8>>::into(p.key().to_owned());
+        let key = decode_key(Into::<Vec<u8>>::into(p.key().to_owned()));
         let value = Into::<Vec<u8>>::into(p.value().to_owned());
         kvret.insert(key, value);
     });
@@ -112,6 +117,6 @@ pub async fn do_async_batch_put(kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
 
 pub async fn do_async_exists(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = get_client()?;
-    let result = client.batch_get(keys.iter().map(|k| {Key::from(k.to_owned())})).await?;
+    let result = client.batch_get(encode_keys(DataType::Raw, keys).iter().map(|k| {Key::from(k.to_owned())})).await?;
     Ok(RedisValue::Integer(result.len() as i64))
 }

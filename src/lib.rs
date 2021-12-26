@@ -12,6 +12,7 @@ mod utils;
 mod commands;
 mod tikv;
 mod pd;
+mod encoding;
 
 use init::{ tikv_init, tikv_deinit };
 use commands::*;
