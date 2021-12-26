@@ -5,7 +5,7 @@ use tikv_client::RawClient;
 use redis_module::{Context, RedisString, ThreadSafeContext, Status };
 use tokio::runtime::{ Runtime, Handle };
 use crate::try_redis_command;
-use crate::commands::{tikv_get, tikv_put};
+use crate::commands::{tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists};
 
 lazy_static! {
     pub static ref GLOBAL_RT1: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
@@ -33,9 +33,9 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 }
             }
         });
-        println!("Tokio Runtime 1 Finished");
+        tctx.lock().log_notice("Tokio Runtime 1 Finished");
         runtime.shutdown_timeout(Duration::from_secs(10));
-        println!("Tokio Runtime 1 Shutdown");
+        tctx.lock().log_notice("Tokio Runtime 1 Shutdown");
     });
 
     thread::spawn(move || {
@@ -53,9 +53,9 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 }
             }
         });
-        println!("Tokio Runtime 2 Finished");
+        tctx.lock().log_notice("Tokio Runtime 2 Finished");
         runtime.shutdown_timeout(Duration::from_secs(10));
-        println!("Tokio Runtime 2 Shutdown");
+        tctx.lock().log_notice("Tokio Runtime 2 Shutdown");
     });
 
     if args.len() > 0 {
@@ -67,13 +67,17 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             // Try to replace system command automatically
             try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+            try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
+            try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
+            try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
         }
     }
     Status::Ok
 }
 
-pub fn tikv_deinit(_ctx: &Context) -> Status {
+pub fn tikv_deinit(ctx: &Context) -> Status {
     *GLOBAL_RUNNING.write().unwrap() = 0;
-    println!("Set Runnint to False");
+    ctx.log_notice("Set Running to False");
     Status::Ok
 }

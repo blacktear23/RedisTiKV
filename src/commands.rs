@@ -178,3 +178,16 @@ pub fn tikv_batch_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     });
     Ok(RedisValue::NoReply)
 }
+
+pub fn tikv_exists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+    let keys: Vec<String> = args.into_iter().skip(1).map(|s| s.to_string()).collect();
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_exists(keys).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}

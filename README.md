@@ -37,8 +37,9 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 * tikv.load [KEY]: read a key's value from TiKV cluster and use SET command save the key-value pair into Redis memory.
 * tikv.scan [STARTKEY] [ENDKEY] [LIMIT]: scan TiKV cluster data's using given range `STARTKEY` to `ENDKEY` and return `LIMIT` rows. If `ENDKEY` is ignored the range is from `STARTKEY` to end.
 * tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
-* tikv.mget [KEY1] [KEY2] ...: same as Redis MGET.
-* tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: same as Redis MSET.
+* tikv.mget [KEY1] [KEY2] ...: Same as Redis MGET.
+* tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: Same as Redis MSET.
+* tikv.exists [KEY1] [KEY2] ...: Same as Redis EXISTS.
 
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
@@ -72,3 +73,12 @@ loadmodule /usr/local/lib/libredistikv.so replacesys
 ```
 
 Then the `GET` and `SET` command is replaced by `TIKV.GET` and `TIKV.SET`.
+
+#### System Commands can be Replaced
+
+* SET
+* GET
+* MSET
+* MGET
+* EXISTS
+* DEL

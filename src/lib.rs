@@ -37,6 +37,7 @@ redis_module! {
         ["tikv.mget", tikv_batch_get, "", 0, 0, 0],
         ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
         ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
+        ["tikv.exists", tikv_exists, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
     ],
 }

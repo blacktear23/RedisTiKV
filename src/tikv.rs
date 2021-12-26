@@ -109,3 +109,9 @@ pub async fn do_async_batch_put(kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
     let _ = client.batch_put(kvs).await?;
     Ok("OK".into())
 }
+
+pub async fn do_async_exists(keys: Vec<String>) -> Result<RedisValue, Error> {
+    let client = get_client()?;
+    let result = client.batch_get(keys.iter().map(|k| {Key::from(k.to_owned())})).await?;
+    Ok(RedisValue::Integer(result.len() as i64))
+}
