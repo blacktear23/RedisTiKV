@@ -14,7 +14,7 @@ where
             ctx.lock().reply(Ok(data.into()));
         },
         Err(err) => {
-            let err_msg = format!("error: {}", err);
+            let err_msg = format!("{}", err);
             ctx.lock().reply_error_string(&err_msg);
         },
     };

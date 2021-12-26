@@ -11,6 +11,8 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 > cargo build
 ```
 
+**Notice:** If using GCC 11 you should add `-include /usr/include/c++/11*/limits` to `CXXFLAGS`.
+
 ## Usage
 
 ```
@@ -22,10 +24,12 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 > tikv.del key
 > tikv.scan prefix 10
 > tikv.delrange start-key end-key
+> pd.members 127.0.0.1:2379
 ```
 
 ## Commands
 
+#### Operate TiKV
 * tikv.conn [PDSERVERADDR] [PDSERVERADDR] ... : connect to TiKV cluster, PDSERVERADDR is optional default is 127.0.0.1:2379
 * tikv.set [KEY] [VALUE]: put a Key-Value pair into TiKV cluster.
 * tikv.get [KEY]: read a key's value from TiKV cluster.
@@ -35,7 +39,17 @@ After build the module you can use Redis's `MODULE LOAD` command load it.
 * tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
 * tikv.mget [KEY1] [KEY2] ...: same as Redis MGET.
 * tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: same as Redis MSET.
+
+#### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
+
+## Module Parameters
+
+```
+module load libredistikv.so [replacesys]
+```
+
+* replacesys: replace system command. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
 
 ## Benchmark
 
@@ -45,8 +59,7 @@ As the implementation of Redis Module, it using block\_client api to make it con
 
 ## Replace System Commands
 
-Change the `redis.conf` file, use `rename-command` configuration to change system command name to other name, then change the `src/lib.rs` file add replaced command into redis module. 
-
+Change the `redis.conf` file, use `rename-command` configuration to change system command name to other name, then add `replacesys` parameter to `MODULE LOAD` command or `loadmodule` configuration command.
 For example:
 
 #### redis.conf
@@ -55,40 +68,7 @@ For example:
 rename-command SET OSET
 rename-command GET OGET
 
-loadmodule /usr/local/lib/libredistikv.so
-```
-
-#### src/lib.rs
-
-```
-// register functions
-redis_module! {
-    name: "tikv",
-    version: 1,
-    data_types: [],
-    init: tikv_init,
-    deinit: tikv_deinit,
-    commands: [
-        ["tikv.mul", curl_mul, "", 0, 0, 0],
-        ["tikv.echo", curl_echo, "", 0, 0, 0],
-        ["tikv.curl", async_curl, "", 0, 0, 0],
-        ["tikv.tcurl", thread_curl, "", 0, 0, 0],
-        ["tikv.conn", tikv_connect, "", 0, 0, 0],
-        ["tikv.get", tikv_get, "", 0, 0, 0],
-        ["tikv.put", tikv_put, "", 0, 0, 0],
-        ["tikv.set", tikv_put, "", 0, 0, 0],
-        ["tikv.del", tikv_del, "", 0, 0, 0],
-        ["tikv.delrange", tikv_del_range, "", 0, 0, 0],
-        ["tikv.load", tikv_load, "", 0, 0, 0],
-        ["tikv.scan", tikv_scan, "", 0, 0, 0],
-        ["tikv.close", tikv_close, "", 0, 0, 0],
-        ["tikv.mget", tikv_batch_get, "", 0, 0, 0],
-        ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
-        ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
-        ["get", tikv_get, "", 0, 0, 0],
-        ["set", tikv_put, "", 0, 0, 0],
-    ],
-}
+loadmodule /usr/local/lib/libredistikv.so replacesys
 ```
 
 Then the `GET` and `SET` command is replaced by `TIKV.GET` and `TIKV.SET`.

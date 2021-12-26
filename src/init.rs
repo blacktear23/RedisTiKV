@@ -17,7 +17,7 @@ lazy_static! {
 }
 
 // Initial tokio main executor in other thread
-pub fn tikv_init(ctx: &Context, _args: &Vec<RedisString>) -> Status {
+pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
@@ -58,10 +58,17 @@ pub fn tikv_init(ctx: &Context, _args: &Vec<RedisString>) -> Status {
         println!("Tokio Runtime 2 Shutdown");
     });
 
-    // Try to replace system command automatically
-    try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
-    try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+    if args.len() > 0 {
+        let replace_system = args.into_iter().any(|s| {
+            s.to_string() == "replacesys"
+        });
 
+        if replace_system {
+            // Try to replace system command automatically
+            try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        }
+    }
     Status::Ok
 }
 
