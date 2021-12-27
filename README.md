@@ -40,6 +40,14 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.mget [KEY1] [KEY2] ...: Same as Redis MGET.
 * tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: Same as Redis MSET.
 * tikv.exists [KEY1] [KEY2] ...: Same as Redis EXISTS.
+* tikv.hset [KEY] [FIELD1] [VALUE1]: Hash set.
+* tikv.hget [KEY] [FIELD1]: Hash get.
+* tikv.hmset [KEY] [FIELD1] [VALUE1] [FIELD2] [VALUE2] ...: Hash multi set.
+* tikv.hmget [KEY] [FIELD1] [FIELD2] ...: Hash multi get.
+* tikv.hgetall [KEY]: Hash get all key and value pairs.
+* tikv.hkeys [KEY]: Hash get all keys.
+* tikv.hvals [KEY]: Hash get all values.
+* tikv.hexists [KEY] [FIELD]: Hash test field exists.
 
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.

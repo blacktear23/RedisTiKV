@@ -29,3 +29,22 @@ pub fn encode_endkey(tp: DataType) -> String {
 pub fn decode_key(key: Vec<u8>) -> Vec<u8> {
     key.clone().drain(5..).collect()
 }
+
+pub fn encode_hash_key(key: &str, field: &str) -> String {
+    let prefix = get_prefix(DataType::Hash);
+    format!("{}_D_{}_{}", prefix, key, field)
+}
+
+pub fn encode_hash_prefix(key: &str) -> String {
+    let prefix = get_prefix(DataType::Hash);
+    format!("{}_D_{}_", prefix, key)
+}
+
+pub fn encode_hash_prefix_end(key: &str) -> String {
+    let prefix = get_prefix(DataType::Hash);
+    format!("{}_D_{}`", prefix, key)
+}
+
+pub fn decode_hash_field(rkey: Vec<u8>, key: &str) -> Vec<u8> {
+    rkey.clone().drain(7+key.len()+1..).collect()
+}

@@ -10,12 +10,14 @@ extern crate tikv_client;
 mod init;
 mod utils;
 mod commands;
+mod hash_commands;
 mod tikv;
 mod pd;
 mod encoding;
 
 use init::{ tikv_init, tikv_deinit };
 use commands::*;
+use hash_commands::*;
 use pd::*;
 
 // register functions
@@ -39,6 +41,14 @@ redis_module! {
         ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
         ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
         ["tikv.exists", tikv_exists, "", 0, 0, 0],
+        ["tikv.hset", tikv_hset, "", 0, 0, 0],
+        ["tikv.hget", tikv_hget, "", 0, 0, 0],
+        ["tikv.hgetall", tikv_hget_all, "", 0, 0, 0],
+        ["tikv.hkeys", tikv_hkeys, "", 0, 0, 0],
+        ["tikv.hvals", tikv_hvals, "", 0, 0, 0],
+        ["tikv.hmset", tikv_hmset, "", 0, 0, 0],
+        ["tikv.hmget", tikv_hmget, "", 0, 0, 0],
+        ["tikv.hexists", tikv_hexists, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
     ],
 }
