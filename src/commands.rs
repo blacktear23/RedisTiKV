@@ -3,10 +3,15 @@ use crate::utils::{ redis_resp, tokio_spawn };
 use crate::tikv::*;
 use tikv_client::{KvPair};
 use crate::encoding::{DataType, encode_key};
+use crate::init::GLOBAL_CLIENT;
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
         return Err(RedisError::WrongArity);
+    }
+    let guard = GLOBAL_CLIENT.read().unwrap();
+    if guard.as_ref().is_some() {
+        return Ok(resp_sstr("Already Connected"))
     }
     let mut addrs: Vec<String> = Vec::new();
     if args.len() == 1 {

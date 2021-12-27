@@ -47,10 +47,11 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 ## Module Parameters
 
 ```
-module load libredistikv.so [replacesys]
+module load libredistikv.so [replacesys] [autoconn] [PD_ADDR1,PD_ADDR2]
 ```
 
 * replacesys: replace system command. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
+* autoconn: auto connect to TiKV with followed PD addresses when module loaded. Many address separated by `,`
 
 ## Benchmark
 

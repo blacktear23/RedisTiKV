@@ -6,6 +6,7 @@ use redis_module::{Context, RedisString, ThreadSafeContext, Status };
 use tokio::runtime::{ Runtime, Handle };
 use crate::try_redis_command;
 use crate::commands::{tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists};
+use crate::tikv::do_async_connect;
 
 lazy_static! {
     pub static ref GLOBAL_RT1: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
@@ -18,6 +19,29 @@ lazy_static! {
 
 // Initial tokio main executor in other thread
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
+    let mut replace_system: bool = false;
+    let mut auto_connect: bool = false;
+    let mut pd_addrs: String = String::from("");
+    if args.len() > 0 {
+        let mut start_pd_addrs = false;
+        args.into_iter().for_each(|s| {
+            let ss = s.to_string();
+            if ss == "replacesys" {
+                replace_system = true;
+                return;
+            }
+            if ss == "autoconn" {
+                auto_connect = true;
+                start_pd_addrs = true;
+                return;
+            }
+            if start_pd_addrs {
+                pd_addrs = ss.clone();
+                start_pd_addrs = false;
+            }
+        });
+    }
+
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
@@ -25,6 +49,26 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         *GLOBAL_RUNNING.write().unwrap() = 1;
         let tctx = ThreadSafeContext::new();
         tctx.lock().log_notice("Tokio Runtime 1 Created");
+
+        if auto_connect && pd_addrs != "" {
+            tctx.lock().log_notice("Auto connect to PD");
+            runtime.block_on(async {
+                let mut addrs: Vec<String> = Vec::new();
+                pd_addrs.split(",").for_each(|s| {
+                    addrs.push(s.to_string());
+                });
+                let ret = do_async_connect(addrs).await;
+                match ret {
+                    Ok(_) => {
+                        tctx.lock().log_notice(&format!("Connect to PD {} Success", pd_addrs));
+                    },
+                    Err(err) => {
+                        tctx.lock().log_notice(&format!("Connect to PD {} error: {}", pd_addrs, err));
+                    },
+                }
+            });
+        }
+
         runtime.block_on(async {
             loop {
                 sleep(Duration::from_secs(1)).await;
@@ -58,21 +102,16 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         tctx.lock().log_notice("Tokio Runtime 2 Shutdown");
     });
 
-    if args.len() > 0 {
-        let replace_system = args.into_iter().any(|s| {
-            s.to_string() == "replacesys"
-        });
-
-        if replace_system {
-            // Try to replace system command automatically
-            try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
-            try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
-            try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
-            try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
-            try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
-            try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
-        }
+    if replace_system {
+        // Try to replace system command automatically
+        try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
+        try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
+        try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
+        try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
+        try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
     }
+
     Status::Ok
 }
 
