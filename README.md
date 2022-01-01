@@ -1,9 +1,9 @@
 # RedisTikvPoc
-[POC] Redis Module for TiKV
+Redis Module for TiKV
 
-This is a POC repository. This Redis Module will add branch new Redis commands to operate TiKV data.
+This is a POC repository. This Redis Module will add branch new Redis commands to operate TiKV data. As Redis 4.0 introduce Redis Module feature, a branch new modules is provided to enhance Redis features. So this is why we want to implements a TiKV Redis Module to let Redis Server operate TiKV directly.
 
-After build the module you can use Redis `MODULE LOAD` command load it.
+Beside operate the Redis like data structure in TiKV, we can also add some command for Redis to operate other component of TiDB. For example, connect PD server's HTTP api to operate PD server; connect TiDB server to execute SQL commands.
 
 ## Build
 
@@ -12,6 +12,8 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 ```
 
 **Notice:** If using GCC 11 you should add `-include /usr/include/c++/11*/limits` to `CXXFLAGS`.
+
+After build the module you can use Redis `MODULE LOAD` command load it.
 
 ## Usage
 
@@ -109,3 +111,8 @@ Data Types may provided:
 * List: List type key, used by LPOP, LPUSH series commands, use char `L`
 
 **Note:** Key encoding is a draft. So it may change in future.
+
+## Hackathon Members
+
+* blacktear23
+* bb7133
