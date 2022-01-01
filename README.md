@@ -112,7 +112,9 @@ Data Types may provided:
 
 **Note:** Key encoding is a draft. So it may change in future.
 
-## Hackathon Members
+## Hackathon Team and Members
+
+Team Name: Helium
 
 * blacktear23
 * bb7133
