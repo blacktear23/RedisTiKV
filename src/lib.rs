@@ -11,6 +11,8 @@ mod init;
 mod utils;
 mod commands;
 mod hash_commands;
+mod list;
+mod list_commands;
 mod tikv;
 mod pd;
 mod encoding;
@@ -19,6 +21,7 @@ mod tidb;
 use init::{ tikv_init, tikv_deinit };
 use commands::*;
 use hash_commands::*;
+use list_commands::*;
 use pd::*;
 use tidb::*;
 
@@ -51,6 +54,8 @@ redis_module! {
         ["tikv.hmset", tikv_hmset, "", 0, 0, 0],
         ["tikv.hmget", tikv_hmget, "", 0, 0, 0],
         ["tikv.hexists", tikv_hexists, "", 0, 0, 0],
+        ["tikv.lpush", tikv_lpush, "", 0, 0, 0],
+        ["tikv.lrange", tikv_lrange, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
         ["tidb.conn", mysql_conn, "", 0, 0, 0],
         ["tidb.query", mysql_query, "", 0, 0, 0],
