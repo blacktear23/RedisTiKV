@@ -25,14 +25,25 @@ pub fn get_client() -> Result<Box<RawClient>, Error> {
     }
 }
 
+pub fn get_txn_client() -> Result<&'static TransactionClient, Error> {
+    unsafe {
+        match GLOBAL_TXN_CLIENT.as_ref() {
+            Some(val) => Ok(val),
+            None => Err(tikv_client::Error::StringError(String::from(
+                "TiKV Not connected",
+            ))),
+        }
+    }
+}
+
 pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
     let client = RawClient::new(addrs.clone()).await?;
-    let txn_client = TransactionClient::new(addrs.clone()).await?;
     GLOBAL_CLIENT.write().unwrap().replace(Box::new(client));
-    GLOBAL_TXN_CLIENT
-        .write()
-        .unwrap()
-        .replace(Box::new(txn_client));
+
+    let txn_client = TransactionClient::new(addrs.clone()).await?;
+    unsafe {
+        GLOBAL_TXN_CLIENT.replace(txn_client);
+    }
     Ok(resp_ok())
 }
 
@@ -71,62 +82,80 @@ pub async fn do_async_hput(key: &str, field: &str, val: &str) -> Result<RedisVal
 }
 
 pub async fn do_async_lpush(key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+    let client = get_txn_client()?;
+    // TODO: support pessimistic mode and FOR_UPDATE read.
+    let mut txn = client.begin_optimistic().await?;
 
     let encoded_key = encode_list_meta_key(key);
-    let (l, r) = decode_list_meta(client.get(encoded_key.clone()).await?);
+    let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
     for (pos, e) in elements.iter().enumerate() {
-        let _ = client
-            .put(encode_list_elem_key(key, (l - pos as i64) as u32), e.to_owned())
+        let _ = txn
+            .put(
+                encode_list_elem_key(key, l - pos as i64 - 1),
+                e.to_owned(),
+            )
             .await?;
     }
 
-    client.put(encoded_key, encode_list_meta(l - elements.len() as i64, r)).await?;
+    txn
+        .put(encoded_key, encode_list_meta(l - elements.len() as i64, r))
+        .await?;
+
+    txn.commit().await?;
     Ok(resp_ok())
 }
 
-pub async fn do_async_lrange(key: &str, start: i32, stop: i32) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+pub async fn do_async_lrange(key: &str, start: i64, stop: i64) -> Result<RedisValue, Error> {
+    let client = get_txn_client()?;
+    let mut txn = client.begin_optimistic().await?;
 
     let encoded_key = encode_list_meta_key(key);
-    let (l, r) = decode_list_meta(client.get(encoded_key.clone()).await?);
+    let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
     let num = match stop {
-        p if p > 0 => i64::min((stop - start + 1) as i64, r - l),
-        n if n < 0 => r + n as i64 - l,
+        p if p > 0 => i64::min(stop - start, r - l) + 1,
+        n if n < 0 => r + n - l + 1,
         _ => 0,
     };
 
-    let start_pos = l + start as i64;
+    let start_pos = l + start;
     let end_pos = start_pos + num;
 
-    let start_key = encode_list_elem_key(key, start_pos as u32);
-    let mut end_key = encode_list_elem_key(key, end_pos as u32);
-    // need to add an extra byte because `scan` of TiKV client for upper range is exclusive.
-    end_key.push(0);
+    let start_key = encode_list_elem_key(key, start_pos);
+    let end_key = encode_list_elem_key(key, end_pos);
     let range = start_key..end_key;
-    let result = client.scan(range, num as u32).await?;
+    let result = txn.scan(range, num as u32).await?;
     let values: Vec<_> = result
         .into_iter()
         .map(|p| Vec::from(Into::<Vec<u8>>::into(p.value().clone())))
         .collect();
+
+    txn.rollback().await?;
     Ok(values.into())
 }
 
 pub async fn do_async_rpush(key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+    let client = get_txn_client()?;
+    let mut txn = client.begin_optimistic().await?;
 
     let encoded_key = encode_list_meta_key(key);
-    let (l, r) = decode_list_meta(client.get(encoded_key.clone()).await?);
+    let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
     for (pos, e) in elements.iter().enumerate() {
-        let _ = client
-            .put(encode_list_elem_key(key, (r + pos as i64) as u32), e.to_owned())
+        let _ = txn
+            .put(
+                encode_list_elem_key(key, r + pos as i64),
+                e.to_owned(),
+            )
             .await?;
     }
 
-    client.put(encoded_key, encode_list_meta(l, r + elements.len() as i64)).await?;
+    txn
+        .put(encoded_key, encode_list_meta(l, r + elements.len() as i64))
+        .await?;
+
+    txn.commit().await?;
     Ok(resp_ok())
 }
 
@@ -185,7 +214,7 @@ pub async fn do_async_close() -> Result<RedisValue, Error> {
     let _ = get_client()?;
     *GLOBAL_CLIENT.write().unwrap() = None;
 
-    *GLOBAL_TXN_CLIENT.write().unwrap() = None;
+    // *GLOBAL_TXN_CLIENT.write().unwrap() = None;
     Ok(resp_sstr("Closed"))
 }
 

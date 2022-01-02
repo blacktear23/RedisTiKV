@@ -39,15 +39,15 @@ pub fn decode_key(key: Vec<u8>) -> Vec<u8> {
 pub fn decode_list_meta(value: Option<Vec<u8>>) -> (i64, i64) {
     match value {
         Some(v) => (
-            i64::from_le_bytes(v[0..8].try_into().unwrap()),
-            i64::from_le_bytes(v[8..16].try_into().unwrap()),
+            i64::from_be_bytes(v[0..8].try_into().unwrap()),
+            i64::from_be_bytes(v[8..16].try_into().unwrap()),
         ),
         None => (std::u32::MAX as i64, std::u32::MAX as i64),
     }
 }
 
 pub fn encode_list_meta(l: i64, r: i64) -> Vec<u8> {
-    [l.to_le_bytes(), r.to_le_bytes()].concat().to_vec()
+    [l.to_be_bytes(), r.to_be_bytes()].concat().to_vec()
 }
 
 pub fn encode_hash_key(key: &str, field: &str) -> String {
@@ -74,9 +74,9 @@ pub fn encode_list_meta_key(key: &str) -> String {
     format!("{}_M_{}", prefix, key)
 }
 
-pub fn encode_list_elem_key(key: &str, idx: u32) -> Vec<u8> {
+pub fn encode_list_elem_key(key: &str, idx: i64) -> Vec<u8> {
     let prefix = get_prefix(DataType::List);
     let mut res = format!("{}_D_{}_", prefix, key).into_bytes();
-    res.append(&mut idx.to_le_bytes().to_vec());
+    res.append(&mut idx.to_be_bytes().to_vec());
     res
 }
