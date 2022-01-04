@@ -28,7 +28,7 @@ pub fn get_pool() -> Result<Box<Pool>, Error> {
     }
 }
 
-#[derive(Clone, PartialEq, PartialOrd)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub enum MySQLValue {
     Null,
     Integer(i64),
@@ -65,13 +65,13 @@ impl From<Value> for MySQLValue {
 pub async fn do_async_mysql_query(sql: &str) -> Result<RedisValue, Error> {
     let pool = get_pool()?;
     let mut conn = pool.get_conn().await?;
-    let mut result = conn.query_iter(sql).await?;
+    let mut result = conn.exec_iter(sql, Params::Empty).await?;
     let mut values: Vec<Vec<MySQLValue>> = Vec::new();
     result.for_each(|row| {
         let mut cols_data: Vec<MySQLValue> = Vec::new();
         for i in 0..row.len() {
-            let col_val = row.get::<Value, usize>(i).unwrap();
-            cols_data.push(col_val.into());
+            let col_val = &row[i];
+            cols_data.push(Into::<MySQLValue>::into(col_val.to_owned()));
         }
         values.push(cols_data.into());
     }).await?;
