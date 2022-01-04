@@ -4,6 +4,7 @@ use std::sync::{Arc, RwLock, Mutex};
 use tikv_client::RawClient;
 use redis_module::{Context, RedisString, ThreadSafeContext, Status };
 use tokio::runtime::{ Runtime, Handle };
+use crate::tidb::do_async_mysql_connect;
 use crate::try_redis_command;
 use crate::commands::{tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists};
 use crate::tikv::do_async_connect;
@@ -21,9 +22,12 @@ lazy_static! {
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut replace_system: bool = false;
     let mut auto_connect: bool = false;
+    let mut auto_connect_mysql: bool = false;
     let mut pd_addrs: String = String::from("");
+    let mut mysql_url: String = String::from("");
     if args.len() > 0 {
         let mut start_pd_addrs = false;
+        let mut start_mysql_addrs = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -38,6 +42,15 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_pd_addrs {
                 pd_addrs = ss.clone();
                 start_pd_addrs = false;
+            }
+            if ss == "autoconnmysql" {
+                auto_connect_mysql = true;
+                start_mysql_addrs = true;
+                return;
+            }
+            if start_mysql_addrs {
+                mysql_url = ss.clone();
+                start_mysql_addrs = false;
             }
         });
     }
@@ -64,6 +77,21 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                     },
                     Err(err) => {
                         tctx.lock().log_notice(&format!("Connect to PD {} error: {}", pd_addrs, err));
+                    },
+                }
+            });
+        }
+
+        if auto_connect_mysql && mysql_url != "" {
+            tctx.lock().log_notice("Auto connect to MySQL");
+            runtime.block_on(async {
+                let ret = do_async_mysql_connect(&mysql_url.clone()).await;
+                match ret {
+                    Ok(_) => {
+                        tctx.lock().log_notice(&format!("Connect to MySQL {} Success", mysql_url));
+                    },
+                    Err(err) => {
+                        tctx.lock().log_notice(&format!("Connect to MySQL {} error: {}", mysql_url, err));
                     },
                 }
             });
