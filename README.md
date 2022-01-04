@@ -59,6 +59,9 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tidb.query "[SQL]": execute the query SQL and print result.
 * tidb.exec "[SQL]": execute the SQL statement and return affected rows.
 * tidb.close: close TiDB connection.
+* tidb.begin: start transaction for current connection.
+* tidb.commit: commit current connection's transaction.
+* tidb.rollback: rollback current connection's transaction.
 
 ## Module Parameters
 
