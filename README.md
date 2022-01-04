@@ -54,14 +54,23 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
 
+#### Operate TiDB (MySQL)
+* tidb.conn [MYSQL_URL]: connect to TiDB server.
+* tidb.query "[SQL]": execute the query SQL and print result.
+* tidb.exec "[SQL]": execute the SQL statement and return affected rows.
+* tidb.close: close TiDB connection.
+
 ## Module Parameters
 
 ```
-module load libredistikv.so [replacesys] [autoconn] [PD_ADDR1,PD_ADDR2]
+module load libredistikv.so [replacesys] [autoconn] [PD_ADDR1,PD_ADDR2] [autoconnmysql] [MYSQL_URL]
 ```
 
 * replacesys: replace system command. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
 * autoconn: auto connect to TiKV with followed PD addresses when module loaded. Many address separated by `,`
+* autoconnmysql: auto connect to MySQL with followed MYSQL\_URL when module loaded.
+
+**Notice**: MySQL URL format: `mysql:\\[user]:[password]@[address]:[port]\[db]`
 
 ## Benchmark
 
