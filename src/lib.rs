@@ -56,5 +56,8 @@ redis_module! {
         ["tidb.query", mysql_query, "", 0, 0, 0],
         ["tidb.exec", mysql_exec, "", 0, 0, 0],
         ["tidb.close", mysql_close, "", 0, 0, 0],
+        ["tidb.begin", mysql_begin, "", 0, 0, 0],
+        ["tidb.commit", mysql_commit, "", 0, 0, 0],
+        ["tidb.rollback", mysql_rollback, "", 0, 0, 0],
     ],
 }

@@ -1,7 +1,8 @@
 use std::future::Future;
-use redis_module::{RedisValue, ThreadSafeContext, BlockedClient };
+use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
 use std::sync::{RwLockReadGuard};
 pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER };
+use redis_module::redisraw::bindings::RedisModule_GetClientId;
 
 // Respose for redis blocked client
 pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
@@ -36,6 +37,10 @@ where
     }
     let hdl = tmp.as_ref().unwrap();
     hdl.spawn(future);
+}
+
+pub fn get_client_id(ctx: &Context) -> u64 {
+    unsafe{ RedisModule_GetClientId.unwrap()(ctx.get_raw()) }
 }
 
 // Try to register a redis command, if got error, just log a warning.
