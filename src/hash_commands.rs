@@ -1,9 +1,8 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, ThreadSafeContext };
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::utils::{ redis_resp, tokio_spawn };
 use crate::tikv::*;
 use tikv_client::{KvPair};
-use crate::encoding::{DataType, encode_hash_key};
-use crate::init::GLOBAL_CLIENT;
+use crate::encoding::{encode_hash_key};
 
 pub fn tikv_hset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 4 {
