@@ -332,10 +332,10 @@ async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<Vec<
 pub async fn do_async_batch_get(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
-    let ekeys = encode_keys(DataType::Raw, keys.clone());
-    let result = wrap_batch_get(&mut txn, ekeys).await?;
+    let ekeys = encode_keys(DataType::Raw, keys);
+    let result = wrap_batch_get(&mut txn, ekeys.clone()).await?;
     let ret: HashMap<Key, Value> = result.into_iter().map(|pair| (pair.0, pair.1)).collect();
-    let values: Vec<_> = keys.into_iter().map(|k| {
+    let values: Vec<_> = ekeys.into_iter().map(|k| {
         let data = ret.get(Into::<Key>::into(k).as_ref());
         match data {
             Some(val) => {
