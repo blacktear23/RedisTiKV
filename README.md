@@ -25,7 +25,6 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 > tikv.load key
 > tikv.del key
 > tikv.scan prefix 10
-> tikv.delrange start-key end-key
 > pd.members 127.0.0.1:2379
 ```
 
@@ -38,7 +37,6 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.del [KEY1] [KEY2] ...: delete keys from TiKV cluster.
 * tikv.load [KEY]: read a key's value from TiKV cluster and use SET command save the key-value pair into Redis memory.
 * tikv.scan [STARTKEY] [ENDKEY] [LIMIT]: scan TiKV cluster data's using given range `STARTKEY` to `ENDKEY` and return `LIMIT` rows. If `ENDKEY` is ignored the range is from `STARTKEY` to end.
-* tikv.delrange [STARTKEY] [ENDKEY]: use delete\_range API to delete many key's from TiKV cluster.
 * tikv.mget [KEY1] [KEY2] ...: Same as Redis MGET.
 * tikv.mset [KEY1] [VALUE1] [KEY2] [VALUE2] ...: Same as Redis MSET.
 * tikv.exists [KEY1] [KEY2] ...: Same as Redis EXISTS.
@@ -50,6 +48,12 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.hkeys [KEY]: Hash get all keys.
 * tikv.hvals [KEY]: Hash get all values.
 * tikv.hexists [KEY] [FIELD]: Hash test field exists.
+* tikv.lpush [KEY] [VALUE1] [VALUE2]...: List left push.
+* tikv.rpush [KEY] [VALUE1] [VALUE2]...: List right push.
+* tikv.lrange [KEY] [LEFTPOS] [RIGHTPOS]: List start index to right index values.
+* tikv.begin: Start transaction for current client.
+* tikv.commit: Commit current client's transaction.
+* tikv.rollback: Rollback current client's transaction.
 
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
