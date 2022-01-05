@@ -128,6 +128,10 @@ Data Types may provided:
 
 **Note:** Key encoding is a draft. So it may change in future.
 
+## About Transaction
+
+As TiKV support transaction, so RedisTiKV provide a method to use transaction mode. `TIKV.BEGIN` comnand will create a transaction for current connection. And in this connection all followed commands is in this transaction. After `TIKV.COMMIT` or `TIKV.ROLLBACK` command executed the transaction will be finished. This design is like MySQL transaction usage.
+
 ## Hackathon Team and Members
 
 Team Name: Helium
