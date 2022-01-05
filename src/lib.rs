@@ -31,6 +31,9 @@ redis_module! {
     deinit: tikv_deinit,
     commands: [
         ["tikv.conn", tikv_connect, "", 0, 0, 0],
+        ["tikv.begin", tikv_begin, "", 0, 0, 0],
+        ["tikv.commit", tikv_commit, "", 0, 0, 0],
+        ["tikv.rollback", tikv_rollback, "", 0, 0, 0],
         ["tikv.get", tikv_get, "", 0, 0, 0],
         ["tikv.put", tikv_put, "", 0, 0, 0],
         ["tikv.set", tikv_put, "", 0, 0, 0],

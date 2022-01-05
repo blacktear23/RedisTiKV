@@ -1,5 +1,5 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
-use crate::utils::{ redis_resp, tokio_spawn };
+use crate::utils::{ redis_resp, tokio_spawn, get_client_id };
 use crate::tikv::*;
 use tikv_client::{KvPair};
 use crate::encoding::{encode_hash_key};
@@ -71,6 +71,7 @@ pub fn tikv_hmset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if num_kvs % 2 != 0 {
         return Err(RedisError::WrongArity);
     }
+    let cid = get_client_id(ctx);
     let mut kvs: Vec<KvPair> = Vec::new();
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
@@ -85,7 +86,7 @@ pub fn tikv_hmset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
-        let res = do_async_batch_put(kvs).await;
+        let res = do_async_batch_put(cid, kvs).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)
