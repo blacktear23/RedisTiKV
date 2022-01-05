@@ -3,7 +3,7 @@ use crate::utils::{ redis_resp, tokio_spawn, get_client_id };
 use crate::tikv::*;
 use tikv_client::{KvPair};
 use crate::encoding::{DataType, encode_key};
-use crate::init::GLOBAL_CLIENT;
+use crate::init::{GLOBAL_CLIENT, GLOBAL_TXN_CLIENT};
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
@@ -25,6 +25,7 @@ pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         let res = do_async_connect(addrs).await;
         redis_resp(blocked_client, res);
     });
+
     Ok(RedisValue::NoReply)
 }
 
@@ -74,6 +75,7 @@ pub fn tikv_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let cid = get_client_id(ctx);
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
+
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
         let res = do_async_get(cid, key).await;
