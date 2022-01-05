@@ -157,9 +157,11 @@ pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     Ok(value.into())
 }
 
-pub async fn do_async_hget(key: &str, field: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
-    let value = client.get(encode_hash_key(key, field)).await?;
+pub async fn do_async_hget(cid: u64, key: &str, field: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let value = txn.get(encode_hash_key(key, field)).await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(value.into())
 }
 
@@ -179,19 +181,19 @@ pub async fn do_async_put(cid: u64, key: &str, val: &str) -> Result<RedisValue, 
     Ok(resp_ok())
 }
 
-pub async fn do_async_hput(key: &str, field: &str, val: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
-    let _ = client
+pub async fn do_async_hput(cid: u64, key: &str, field: &str, val: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let _ = txn 
         .put(encode_hash_key(key, field), val.to_owned())
         .await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())
 }
 
-pub async fn do_async_lpush(key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
-    let client = get_txn_client().await?;
-    // TODO: support pessimistic mode and FOR_UPDATE read.
-    let mut txn = client.begin_optimistic().await?;
-
+pub async fn do_async_lpush(cid: u64, key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let encoded_key = encode_list_meta_key(key);
     let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
@@ -208,14 +210,13 @@ pub async fn do_async_lpush(key: &str, elements: Vec<String>) -> Result<RedisVal
         .put(encoded_key, encode_list_meta(l - elements.len() as i64, r))
         .await?;
 
-    txn.commit().await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())
 }
 
-pub async fn do_async_lrange(key: &str, start: i64, stop: i64) -> Result<RedisValue, Error> {
-    let client = get_txn_client().await?;
-    let mut txn = client.begin_optimistic().await?;
-
+pub async fn do_async_lrange(cid: u64, key: &str, start: i64, stop: i64) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let encoded_key = encode_list_meta_key(key);
     let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
@@ -237,14 +238,13 @@ pub async fn do_async_lrange(key: &str, start: i64, stop: i64) -> Result<RedisVa
         .map(|p| Vec::from(Into::<Vec<u8>>::into(p.value().clone())))
         .collect();
 
-    txn.rollback().await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
 }
 
-pub async fn do_async_rpush(key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
-    let client = get_txn_client().await?;
-    let mut txn = client.begin_optimistic().await?;
-
+pub async fn do_async_rpush(cid: u64, key: &str, elements: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let encoded_key = encode_list_meta_key(key);
     let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
 
@@ -261,7 +261,7 @@ pub async fn do_async_rpush(key: &str, elements: Vec<String>) -> Result<RedisVal
         .put(encoded_key, encode_list_meta(l, r + elements.len() as i64))
         .await?;
 
-    txn.commit().await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())
 }
 
@@ -371,23 +371,24 @@ pub async fn do_async_exists(cid: u64, keys: Vec<String>) -> Result<RedisValue, 
     Ok(RedisValue::Integer(num_items as i64))
 }
 
-pub async fn do_async_hscan(key: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+pub async fn do_async_hscan(cid: u64, key: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let range = encode_hash_prefix(key)..encode_hash_prefix_end(key);
-    let result = client.scan(range, 10200).await?;
+    let result = txn.scan(range, 10200).await?;
     let mut values: Vec<Vec<u8>> = Vec::new();
     let _ = result.into_iter().for_each(|p| {
         values.push(decode_hash_field(Into::<Vec<u8>>::into(p.key().to_owned()), key));
         values.push(Into::<Vec<u8>>::into(p.value().to_owned()));
     });
+    finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
 }
 
-pub async fn do_async_batch_hget(keys: Vec<String>) -> Result<RedisValue, Error> {
-    let client = get_client()?;
-    let result = client
-        .batch_get(keys.iter().map(|k| Key::from(k.to_owned())))
-        .await?;
+pub async fn do_async_batch_hget(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let result = wrap_batch_get(&mut txn, keys.clone()).await?;
     let mut kvret: HashMap<Vec<u8>, Vec<u8>> = HashMap::new();
     result.into_iter().for_each(|p| {
         let key = Into::<Vec<u8>>::into(p.key().to_owned());
@@ -399,18 +400,20 @@ pub async fn do_async_batch_hget(keys: Vec<String>) -> Result<RedisValue, Error>
         .map(|k| {
             let data = kvret.get::<Vec<u8>>(&k.into());
             match data {
-                Some(val) => Into::<RedisValue>::into(val.to_owned()),
-                None => RedisValue::Null,
+                Some(val) => Into::<TiKVValue>::into(val.to_owned()),
+                None => TiKVValue::Null,
             }
         })
         .collect();
+    finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
 }
 
-pub async fn do_async_hscan_fields(key: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+pub async fn do_async_hscan_fields(cid: u64, key: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let range = encode_hash_prefix(key)..encode_hash_prefix_end(key);
-    let result = client.scan(range, 10200).await?;
+    let result = txn.scan(range, 10200).await?;
     let mut values: Vec<Vec<u8>> = Vec::new();
     result.into_iter().for_each(|p| {
         values.push(decode_hash_field(
@@ -418,22 +421,27 @@ pub async fn do_async_hscan_fields(key: &str) -> Result<RedisValue, Error> {
             key,
         ));
     });
+    finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
 }
 
-pub async fn do_async_hscan_values(key: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
+pub async fn do_async_hscan_values(cid: u64, key: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
     let range = encode_hash_prefix(key)..encode_hash_prefix_end(key);
-    let result = client.scan(range, 10200).await?;
+    let result = txn.scan(range, 10200).await?;
     let mut values: Vec<Vec<u8>> = Vec::new();
     result.into_iter().for_each(|p| {
         values.push(Into::<Vec<u8>>::into(p.value().to_owned()));
     });
+    finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
 }
 
-pub async fn do_async_hexists(key: &str, field: &str) -> Result<RedisValue, Error> {
-    let client = get_client()?;
-    let result = client.batch_get(vec![encode_hash_key(key, field)]).await?;
+pub async fn do_async_hexists(cid: u64, key: &str, field: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let result = wrap_batch_get(&mut txn, vec![encode_hash_key(key, field)]).await?;
+    finish_txn(cid, txn, in_txn).await?;
     Ok(RedisValue::Integer(result.len() as i64))
 }
