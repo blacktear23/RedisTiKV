@@ -9,20 +9,14 @@ extern crate tikv_client;
 
 mod init;
 mod utils;
-mod commands;
-mod hash_commands;
-mod list_commands;
 mod tikv;
 mod pd;
-mod encoding;
 mod tidb;
 
 use init::{ tikv_init, tikv_deinit };
-use commands::*;
-use hash_commands::*;
-use list_commands::*;
-use pd::*;
-use tidb::*;
+use crate::tikv::*;
+use crate::pd::*;
+use crate::tidb::*;
 
 // register functions
 redis_module! {

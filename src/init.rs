@@ -1,21 +1,21 @@
 use std::thread;
 use tokio::time::{sleep, Duration};
 use std::sync::{Arc, RwLock, Mutex};
-use tikv_client::{RawClient};
 use redis_module::{Context, RedisString, ThreadSafeContext, Status };
 use tokio::runtime::{ Runtime, Handle };
-use crate::tidb::do_async_mysql_connect;
-use crate::try_redis_command;
-use crate::commands::{tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists};
-use crate::tikv::do_async_connect;
-
+use crate::{
+    try_redis_command,
+    tidb::commands::do_async_mysql_connect,
+    tikv::{
+        init::do_async_connect,
+        tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
+    },
+};
 
 lazy_static! {
     pub static ref GLOBAL_RT1: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
     pub static ref GLOBAL_RT2: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
     pub static ref GLOBAL_COUNTER: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
-
-    pub static ref GLOBAL_CLIENT: Arc<RwLock<Option<Box<RawClient>>>> = Arc::new(RwLock::new(None));
     static ref GLOBAL_RUNNING: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
 }
 

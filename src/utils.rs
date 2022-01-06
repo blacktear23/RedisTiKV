@@ -4,6 +4,14 @@ use std::sync::{RwLockReadGuard};
 pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER };
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
 
+pub fn resp_ok() -> RedisValue {
+    RedisValue::SimpleStringStatic("OK")
+}
+
+pub fn resp_sstr(val: &'static str) -> RedisValue {
+    RedisValue::SimpleStringStatic(val)
+}
+
 // Respose for redis blocked client
 pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
 where

@@ -1,71 +1,114 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, ThreadSafeContext };
-use crate::utils::{ redis_resp, tokio_spawn, get_client_id };
-use crate::tikv::*;
-use tikv_client::{KvPair};
-use crate::encoding::{DataType, encode_key};
-use crate::init::{GLOBAL_CLIENT};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, ThreadSafeContext};
+use crate::{
+    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
+    tikv::{
+        utils::*,
+        encoding::*,
+    },
+};
+use std::collections::HashMap;
+use tikv_client::{KvPair, Error, Key, Value};
 
-pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 1 {
-        return Err(RedisError::WrongArity);
+pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let value = txn.get(encode_key(DataType::Raw, key)).await?;
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(value.into())
+}
+
+pub async fn do_async_get_raw(cid: u64, key: &str) -> Result<Vec<u8>, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let value = txn.get(encode_key(DataType::Raw, key)).await?;
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(value.unwrap())
+}
+
+pub async fn do_async_put(cid: u64, key: &str, val: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let _ = txn.put(encode_key(DataType::Raw, key), val.to_owned()).await?;
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(resp_ok())
+}
+
+pub async fn do_async_batch_del(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let ekeys = encode_keys(DataType::Raw, keys);
+    for i in 0..ekeys.len() {
+        let key = ekeys[i].to_owned();
+        let _ = txn.delete(key).await?;
     }
-    let guard = GLOBAL_CLIENT.read().unwrap();
-    if guard.as_ref().is_some() {
-        return Ok(resp_sstr("Already Connected"))
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(resp_ok())
+}
+
+pub async fn do_async_scan(cid: u64, prefix: &str, limit: u64) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let range = encode_key(DataType::Raw, prefix)..encode_endkey(DataType::Raw);
+    let result = txn.scan(range, limit as u32).await?;
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([
+            decode_key(Into::<Vec<u8>>::into(p.key().to_owned())),
+            Into::<Vec<u8>>::into(p.value().clone())])).collect();
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(values.into())
+}
+
+pub async fn do_async_scan_range(cid: u64, start_key: &str, end_key: &str, limit: u64) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let range = encode_key(DataType::Raw, start_key)..encode_key(DataType::Raw, end_key);
+    let result = txn.scan(range, limit as u32).await?;
+    let values: Vec<_> = result.into_iter().map(|p| Vec::from([
+            decode_key(Into::<Vec<u8>>::into(p.key().to_owned())),
+            Into::<Vec<u8>>::into(p.value().to_owned())])).collect();
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(values.into())
+}
+
+pub async fn do_async_batch_get(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let ekeys = encode_keys(DataType::Raw, keys);
+    let result = wrap_batch_get(&mut txn, ekeys.clone()).await?;
+    let ret: HashMap<Key, Value> = result.into_iter().map(|pair| (pair.0, pair.1)).collect();
+    let values: Vec<_> = ekeys.into_iter().map(|k| {
+        let data = ret.get(Into::<Key>::into(k).as_ref());
+        match data {
+            Some(val) => {
+                Into::<TiKVValue>::into(val.clone())
+            },
+            None => {
+                TiKVValue::Null
+            }
+        }
+    }).collect();
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(values.into())
+}
+
+pub async fn do_async_batch_put(cid: u64, kvs: Vec<KvPair>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    for i in 0..kvs.len() {
+        let kv = kvs[i].to_owned();
+        txn.put(kv.key().to_owned(), kv.value().to_owned()).await?;
     }
-    let mut addrs: Vec<String> = Vec::new();
-    if args.len() == 1 {
-        addrs.push(String::from("127.0.0.1:2379"));
-    } else {
-        addrs = args.into_iter().skip(1).map(|s| s.to_string()).collect();
-    }
-
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_connect(addrs).await;
-        redis_resp(blocked_client, res);
-    });
-
-    Ok(RedisValue::NoReply)
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(resp_ok())
 }
 
-pub fn tikv_close(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_close().await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_begin(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_begin(cid).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_commit(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_commit(cid).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_rollback(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_rollback(cid).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+pub async fn do_async_exists(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let ekeys = encode_keys(DataType::Raw, keys);
+    let result = wrap_batch_get(&mut txn, ekeys).await?;
+    let num_items = result.len();
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(RedisValue::Integer(num_items as i64))
 }
 
 pub fn tikv_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -168,22 +211,6 @@ pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             let res = do_async_scan_range(cid, start_key, end_key, limit).await;
             redis_resp(blocked_client, res);
         }
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_del_range(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 3 {
-        return Err(RedisError::WrongArity);
-    }
-    let cid = get_client_id(ctx);
-    let mut args = args.into_iter().skip(1);
-    let key_start = args.next_str()?;
-    let key_end = args.next_str()?;
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_delete_range(cid, key_start, key_end).await;
-        redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)
 }
