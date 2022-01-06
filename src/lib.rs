@@ -26,6 +26,7 @@ redis_module! {
     init: tikv_init,
     deinit: tikv_deinit,
     commands: [
+        // TiKV commands
         ["tikv.conn", tikv_connect, "", 0, 0, 0],
         ["tikv.begin", tikv_begin, "", 0, 0, 0],
         ["tikv.commit", tikv_commit, "", 0, 0, 0],
@@ -34,7 +35,6 @@ redis_module! {
         ["tikv.put", tikv_put, "", 0, 0, 0],
         ["tikv.set", tikv_put, "", 0, 0, 0],
         ["tikv.del", tikv_del, "", 0, 0, 0],
-        // ["tikv.delrange", tikv_del_range, "", 0, 0, 0],
         ["tikv.load", tikv_load, "", 0, 0, 0],
         ["tikv.scan", tikv_scan, "", 0, 0, 0],
         ["tikv.close", tikv_close, "", 0, 0, 0],
@@ -53,7 +53,9 @@ redis_module! {
         ["tikv.lpush", tikv_lpush, "", 0, 0, 0],
         ["tikv.rpush", tikv_rpush, "", 0, 0, 0],
         ["tikv.lrange", tikv_lrange, "", 0, 0, 0],
+        // PD commands
         ["pd.members", pd_members, "", 0, 0, 0],
+        // TiDB commands
         ["tidb.conn", mysql_conn, "", 0, 0, 0],
         ["tidb.query", mysql_query, "", 0, 0, 0],
         ["tidb.exec", mysql_exec, "", 0, 0, 0],

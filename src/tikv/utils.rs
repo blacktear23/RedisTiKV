@@ -45,6 +45,10 @@ pub async fn get_txn_client() -> Result<TransactionClient, Error> {
 }
 
 pub fn put_txn_client(client: TransactionClient) {
+    if PD_ADDRS.read().unwrap().is_none() {
+        drop(client);
+        return;
+    }
     TIKV_TNX_CONN_POOL.lock().unwrap().push_back(client);
 }
 

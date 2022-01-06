@@ -8,6 +8,7 @@ pub mod init;
 pub mod list;
 pub mod string;
 pub mod utils;
+pub mod trans;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -18,7 +19,10 @@ lazy_static! {
 // Export commands
 pub use crate::tikv::{
     init::{
-        tikv_connect, tikv_close, tikv_begin, tikv_commit, tikv_rollback,
+        tikv_connect, tikv_close,
+    },
+    trans::{
+        tikv_begin, tikv_commit, tikv_rollback,
     },
     string::{
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put,

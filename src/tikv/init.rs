@@ -1,11 +1,8 @@
 use crate::{
-    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn, resp_sstr},
-    tikv::{
-        PD_ADDRS,
-        utils::*,
-    },
+    utils::{redis_resp, resp_ok, tokio_spawn, resp_sstr},
+    tikv::{PD_ADDRS, TIKV_TNX_CONN_POOL},
 };
-use tikv_client::{Error, TransactionOptions, CheckLevel};
+use tikv_client::Error;
 use redis_module::{Context, RedisError, RedisResult, RedisValue, RedisString};
 
 pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
@@ -14,39 +11,13 @@ pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
 }
 
 pub async fn do_async_close() -> Result<RedisValue, Error> {
+    *PD_ADDRS.write().unwrap() = None;
+    let mut pool = TIKV_TNX_CONN_POOL.lock().unwrap();
+    for _i in 0..pool.len() {
+        let client = pool.pop_front();
+        drop(client);
+    }
     Ok(resp_sstr("Closed"))
-}
-
-pub async fn do_async_begin(cid: u64) -> Result<RedisValue, Error> {
-    let _pd_addrs = get_pd_addrs()?;
-    if has_txn(cid) {
-        return Err(tikv_client::Error::StringError(String::from("Transaction already started")));
-    }
-    let conn = get_txn_client().await?;
-    let txn = conn.begin_with_options(TransactionOptions::default().drop_check(CheckLevel::Warn)).await?;
-    put_txn_client(conn);
-    put_txn(cid, txn);
-    Ok(resp_ok())
-}
-
-pub async fn do_async_commit(cid: u64) -> Result<RedisValue, Error> {
-    let _ = get_pd_addrs()?;
-    if !has_txn(cid) {
-        return Err(tikv_client::Error::StringError(String::from("Transaction not started")));
-    }
-    let mut txn = get_txn(cid);
-    txn.commit().await?;
-    Ok(resp_ok())
-}
-
-pub async fn do_async_rollback(cid: u64) -> Result<RedisValue, Error> {
-    let _ = get_pd_addrs()?;
-    if !has_txn(cid) {
-        return Err(tikv_client::Error::StringError(String::from("Transaction not started")));
-    }
-    let mut txn = get_txn(cid);
-    txn.rollback().await?;
-    Ok(resp_ok())
 }
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -77,36 +48,6 @@ pub fn tikv_close(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
         let res = do_async_close().await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_begin(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_begin(cid).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_commit(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_commit(cid).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
-}
-
-pub fn tikv_rollback(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let cid = get_client_id(ctx);
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_rollback(cid).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

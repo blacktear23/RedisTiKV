@@ -94,7 +94,7 @@ pub async fn do_async_mysql_rollback(cid: u64) -> Result<RedisValue, Error> {
     Ok(resp_sstr("Transaction Rollbacked"))
 }
 
-pub async fn do_async_close() -> Result<RedisValue, Error> {
+pub async fn do_async_mysql_close() -> Result<RedisValue, Error> {
     let pool = get_pool()?;
     *GLOBAL_MYSQL_POOL.write().unwrap() = None;
     pool.disconnect().await?;
@@ -178,7 +178,7 @@ pub fn mysql_exec(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 pub fn mysql_close(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
-        let res = do_async_close().await;
+        let res = do_async_mysql_close().await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

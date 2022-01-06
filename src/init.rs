@@ -5,9 +5,15 @@ use redis_module::{Context, RedisString, ThreadSafeContext, Status };
 use tokio::runtime::{ Runtime, Handle };
 use crate::{
     try_redis_command,
-    tidb::commands::do_async_mysql_connect,
+    tidb::commands::{
+        do_async_mysql_connect,
+        do_async_mysql_close,
+    },
     tikv::{
-        init::do_async_connect,
+        init::{
+            do_async_connect,
+            do_async_close,
+        },
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
     },
 };
@@ -102,13 +108,18 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             loop {
                 sleep(Duration::from_secs(1)).await;
                 if *GLOBAL_RUNNING.read().unwrap() == 0 {
+                    // Close connections
+                    let _ = do_async_mysql_close().await;
+                    println!("MySQL Connection Closed");
+                    let _ = do_async_close().await;
+                    println!("TiKV Connection Closed");
                     return;
                 }
             }
         });
-        tctx.lock().log_notice("Tokio Runtime 1 Finished");
+        println!("Tokio Runtime 1 Finished");
         runtime.shutdown_timeout(Duration::from_secs(10));
-        tctx.lock().log_notice("Tokio Runtime 1 Shutdown");
+        println!("Tokio Runtime 1 Shutdown");
     });
 
     thread::spawn(move || {
@@ -126,9 +137,9 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 }
             }
         });
-        tctx.lock().log_notice("Tokio Runtime 2 Finished");
+        println!("Tokio Runtime 2 Finished");
         runtime.shutdown_timeout(Duration::from_secs(10));
-        tctx.lock().log_notice("Tokio Runtime 2 Shutdown");
+        println!("Tokio Runtime 2 Shutdown");
     });
 
     if replace_system {
