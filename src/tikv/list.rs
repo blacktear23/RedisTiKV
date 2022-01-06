@@ -1,6 +1,6 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
-    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
+    utils::{redis_resp, resp_int, get_client_id, tokio_spawn},
     tikv::{
         utils::*,
         encoding::*,
@@ -23,12 +23,13 @@ pub async fn do_async_lpush(cid: u64, key: &str, elements: Vec<String>) -> Resul
             .await?;
     }
 
+    let new_l = l - elements.len() as i64;
     txn
-        .put(encoded_key, encode_list_meta(l - elements.len() as i64, r))
+        .put(encoded_key, encode_list_meta(new_l, r))
         .await?;
 
     finish_txn(cid, txn, in_txn).await?;
-    Ok(resp_ok())
+    Ok(resp_int(r - new_l))
 }
 
 pub async fn do_async_lrange(cid: u64, key: &str, start: i64, stop: i64) -> Result<RedisValue, Error> {
@@ -74,12 +75,13 @@ pub async fn do_async_rpush(cid: u64, key: &str, elements: Vec<String>) -> Resul
             .await?;
     }
 
+    let new_r = r + elements.len() as i64;
     txn
-        .put(encoded_key, encode_list_meta(l, r + elements.len() as i64))
+        .put(encoded_key, encode_list_meta(l, new_r))
         .await?;
 
     finish_txn(cid, txn, in_txn).await?;
-    Ok(resp_ok())
+    Ok(resp_int(new_r - l))
 }
 
 
@@ -90,7 +92,6 @@ pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let cid = get_client_id(ctx);
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let len = args.len() as i64;
     let blocked_client = ctx.block_client();
     let elements = args.map(|x| x.to_string_lossy()).collect();
     ctx.log_debug(&format!("Handle tikv_lpush commands, key: {}, elements: {:?}", key, elements));
@@ -98,7 +99,7 @@ pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         let res = do_async_lpush(cid, key, elements).await;
         redis_resp(blocked_client, res);
     });
-    Ok(RedisValue::Integer(len))
+    Ok(RedisValue::NoReply)
 }
 
 pub fn tikv_lrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -126,7 +127,6 @@ pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let cid = get_client_id(ctx);
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let len = args.len() as i64;
     let blocked_client = ctx.block_client();
     let elements = args.map(|x| x.to_string_lossy()).collect();
     ctx.log_debug(&format!("Handle tikv_lpush commands, key: {}, elements: {:?}", key, elements));
@@ -134,5 +134,5 @@ pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         let res = do_async_rpush(cid, key, elements).await;
         redis_resp(blocked_client, res);
     });
-    Ok(RedisValue::Integer(len))
+    Ok(RedisValue::NoReply)
 }
