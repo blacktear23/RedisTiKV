@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
     utils::{redis_resp, resp_int, resp_ok, get_client_id, tokio_spawn},
@@ -60,11 +62,11 @@ pub async fn do_async_lrange(cid: u64, key: &str, start: i64, stop: i64) -> Resu
     Ok(values.into())
 }
 
-fn adjust_offset(offset: i64, r: i64) -> i64 {
+fn adjust_offset(offset: i64, l: i64, r: i64) -> i64 {
     if offset < 0 {
-        r - offset + 1
+        r + offset + 1
     } else {
-        offset
+        l + offset
     }
 }
 
@@ -78,13 +80,13 @@ pub async fn do_async_ltrim(cid: u64, key: &str, start: i64, stop: i64) -> Resul
         return Ok(resp_ok());
     }
 
-    let new_l = l + adjust_offset(start, r);
-    let mut new_r = l + adjust_offset(stop, r);
-    if new_l >= new_r || new_l >= r - l {
+    let new_l = adjust_offset(start, l, r);
+    let mut new_r = adjust_offset(stop, l, r);
+    if new_l >= new_r || start >= r - l {
         // TODO: remove key and the elements.
         new_r = new_l;
     }
-    
+
     txn
         .put(encoded_key, encode_list_meta(new_l, new_r))
         .await?;
@@ -123,7 +125,7 @@ pub async fn do_async_llen(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let encoded_key = encode_list_meta_key(key);
     let (l, r) = decode_list_meta(txn.get(encoded_key.clone()).await?);
     finish_txn(cid, txn, in_txn).await?;
-    Ok(resp_int(l - l))
+    Ok(resp_int(r - l))
 }
 
 pub async fn do_async_lpop(cid: u64, key: &str, count: i64) -> Result<RedisValue, Error> {
@@ -235,11 +237,13 @@ pub fn tikv_lpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let cid = get_client_id(ctx);
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let count = if args.len() > 2 {
-        i64::try_from(args.next_u64()?)?
-    } else {
-        1
+    let count = match args.next() {
+        Some(s) => i64::from_str(s.try_as_str()?)?,
+        None => 1,
     };
+    if count < 0 {
+        return Err(RedisError::Str("value is out of range, must be positive"));
+    }
     let blocked_client = ctx.block_client();
     ctx.log_debug(&format!("Handle tikv_lpop commands, key: {}, count: {}", key, count));
     tokio_spawn(async move {
