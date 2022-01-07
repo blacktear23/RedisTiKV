@@ -1,5 +1,5 @@
 use redis_module::{ RedisValue };
-use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel};
+use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions};
 use crate::tikv::{PD_ADDRS, TIKV_TRANSACTIONS, TIKV_TNX_CONN_POOL};
 
 pub enum TiKVValue {
@@ -63,13 +63,20 @@ pub async fn finish_txn(cid: u64, txn: Transaction, in_txn: bool) -> Result<u8, 
     }
 }
 
+pub fn get_transaction_option() -> TransactionOptions {
+    let opts = TransactionOptions::new_pessimistic();
+    let retry_opts = RetryOptions::default_pessimistic();
+    opts.drop_check(CheckLevel::Warn)
+        .retry_options(retry_opts)
+}
+
 pub async fn get_transaction(cid: u64) -> Result<Transaction, Error> {
     if has_txn(cid) {
         let txn = get_txn(cid);
         Ok(txn)
     } else {
         let conn = get_txn_client().await?;
-        let txn = conn.begin_with_options(TransactionOptions::default().drop_check(CheckLevel::Warn)).await?;
+        let txn = conn.begin_with_options(get_transaction_option()).await?;
         put_txn_client(conn);
         Ok(txn)
     }

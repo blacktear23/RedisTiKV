@@ -3,5 +3,5 @@ pub mod utils;
 
 // Export commands
 pub use crate::pd::commands::{
-    pd_members,
+    pd_apiget, pd_stores, pd_members,
 };

@@ -54,7 +54,9 @@ redis_module! {
         ["tikv.rpush", tikv_rpush, "", 0, 0, 0],
         ["tikv.lrange", tikv_lrange, "", 0, 0, 0],
         // PD commands
+        ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
+        ["pd.stores", pd_stores, "", 0, 0, 0],
         // TiDB commands
         ["tidb.conn", mysql_conn, "", 0, 0, 0],
         ["tidb.query", mysql_query, "", 0, 0, 0],

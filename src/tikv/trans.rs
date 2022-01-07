@@ -2,7 +2,7 @@ use crate::{
     utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
     tikv::utils::*,
 };
-use tikv_client::{Error, TransactionOptions, CheckLevel};
+use tikv_client::Error;
 use redis_module::{Context, RedisResult, RedisValue, RedisString};
 
 pub async fn do_async_begin(cid: u64) -> Result<RedisValue, Error> {
@@ -11,7 +11,7 @@ pub async fn do_async_begin(cid: u64) -> Result<RedisValue, Error> {
         return Err(tikv_client::Error::StringError(String::from("Transaction already started")));
     }
     let conn = get_txn_client().await?;
-    let txn = conn.begin_with_options(TransactionOptions::default().drop_check(CheckLevel::Warn)).await?;
+    let txn = conn.begin_with_options(get_transaction_option()).await?;
     put_txn_client(conn);
     put_txn(cid, txn);
     Ok(resp_ok())
