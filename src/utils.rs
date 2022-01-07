@@ -12,6 +12,10 @@ pub fn resp_sstr(val: &'static str) -> RedisValue {
     RedisValue::SimpleStringStatic(val)
 }
 
+pub fn resp_int(val: i64) -> RedisValue {
+    RedisValue::Integer(val)
+}
+
 // Respose for redis blocked client
 pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
 where
