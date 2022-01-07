@@ -53,6 +53,9 @@ redis_module! {
         ["tikv.lpush", tikv_lpush, "", 0, 0, 0],
         ["tikv.rpush", tikv_rpush, "", 0, 0, 0],
         ["tikv.lrange", tikv_lrange, "", 0, 0, 0],
+        ["tikv.llen", tikv_llen, "", 0, 0, 0],
+        ["tikv.ltrim", tikv_ltrim, "", 0, 0, 0],
+        ["tikv.lpop", tikv_lpop, "", 0, 0, 0],
         // PD commands
         ["pd.members", pd_members, "", 0, 0, 0],
         // TiDB commands
