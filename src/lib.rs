@@ -56,6 +56,8 @@ redis_module! {
         ["tikv.llen", tikv_llen, "", 0, 0, 0],
         ["tikv.ltrim", tikv_ltrim, "", 0, 0, 0],
         ["tikv.lpop", tikv_lpop, "", 0, 0, 0],
+        ["tikv.lpos", tikv_lpos, "", 0, 0, 0],
+        ["tikv.lindex", tikv_lindex, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],

@@ -33,6 +33,7 @@ pub use crate::tikv::{
         tikv_hkeys, tikv_hvals, tikv_hexists, tikv_hget_all,
     },
     list::{
-        tikv_lpush, tikv_rpush, tikv_lrange, tikv_lpop, tikv_ltrim, tikv_llen,
+        tikv_lpush, tikv_rpush, tikv_lrange, tikv_lpop,
+        tikv_ltrim, tikv_llen, tikv_lpos, tikv_lindex,
     }
 };
