@@ -33,6 +33,22 @@ where
     };
 }
 
+// Respose for redis blocked client
+pub fn redis_resp_with_ctx<E>(ctx: &ThreadSafeContext<BlockedClient>, result: Result<RedisValue, E>)
+where
+    E: std::error::Error
+{
+    match result {
+        Ok(data) => {
+            ctx.lock().reply(Ok(data.into()));
+        },
+        Err(err) => {
+            let err_msg = format!("{}", err);
+            ctx.lock().reply_error_string(&err_msg);
+        },
+    };
+}
+
 // Spawn async task from Redis Module main thread
 pub fn tokio_spawn<T>(future: T)
 where

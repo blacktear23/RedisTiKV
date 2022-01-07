@@ -9,6 +9,7 @@ pub mod list;
 pub mod string;
 pub mod utils;
 pub mod trans;
+pub mod sync;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -26,7 +27,10 @@ pub use crate::tikv::{
     },
     string::{
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put,
-        tikv_del, tikv_exists, tikv_scan, tikv_load,
+        tikv_del, tikv_exists, tikv_scan,
+    },
+    sync::{
+        tikv_load, tikv_scan_load, tikv_sync,
     },
     hash::{
         tikv_hget, tikv_hset, tikv_hmset, tikv_hmget,

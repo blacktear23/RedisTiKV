@@ -1,4 +1,4 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, ThreadSafeContext};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
     utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
     tikv::{
@@ -15,14 +15,6 @@ pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let value = txn.get(encode_key(DataType::Raw, key)).await?;
     finish_txn(cid, txn, in_txn).await?;
     Ok(value.into())
-}
-
-pub async fn do_async_get_raw(cid: u64, key: &str) -> Result<Vec<u8>, Error> {
-    let in_txn = has_txn(cid);
-    let mut txn = get_transaction(cid).await?;
-    let value = txn.get(encode_key(DataType::Raw, key)).await?;
-    finish_txn(cid, txn, in_txn).await?;
-    Ok(value.unwrap())
 }
 
 pub async fn do_async_put(cid: u64, key: &str, val: &str) -> Result<RedisValue, Error> {
@@ -156,34 +148,6 @@ pub fn tikv_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     });
     Ok(RedisValue::NoReply)
 
-}
-
-pub fn tikv_load(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-    let cid = get_client_id(ctx);
-    let mut args = args.into_iter().skip(1);
-    let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let tctx = ThreadSafeContext::with_blocked_client(blocked_client);
-        let res = do_async_get_raw(cid, key).await;
-        match res {
-            Ok(data) => {
-                if data.len() > 0 {
-                    let data_str = std::str::from_utf8(&data);
-                    tctx.lock().call("SET", &[key, data_str.unwrap()]).unwrap();
-                }
-                tctx.reply(Ok(data.into()));
-            },
-            Err(err) => {
-                let err_msg = format!("error: {}", err);
-                tctx.reply(Ok(err_msg.into()));
-            },
-        };
-    });
-    Ok(RedisValue::NoReply)
 }
 
 pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
