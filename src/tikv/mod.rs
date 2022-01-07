@@ -6,6 +6,7 @@ pub mod encoding;
 pub mod hash;
 pub mod init;
 pub mod list;
+pub mod set;
 pub mod string;
 pub mod utils;
 pub mod trans;
@@ -39,5 +40,8 @@ pub use crate::tikv::{
     list::{
         tikv_lpush, tikv_rpush, tikv_lrange, tikv_lpop,
         tikv_ltrim, tikv_llen, tikv_lpos, tikv_lindex,
-    }
+    },
+    set::{
+        tikv_sadd, tikv_scard, tikv_smembers,
+    },
 };
