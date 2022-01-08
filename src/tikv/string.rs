@@ -1,13 +1,13 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
-    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
+    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn, sleep},
     tikv::{
         utils::*,
         encoding::*,
     },
 };
 use std::collections::HashMap;
-use tikv_client::{KvPair, Error, Key, Value};
+use tikv_client::{KvPair, Error, Key, Value, Transaction};
 
 pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
@@ -17,10 +17,38 @@ pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     Ok(value.into())
 }
 
+pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..1000 {
+        match txn.put(key.to_owned(), value.to_owned()).await {
+            Ok(_) => {
+                return Ok(());
+            },
+            Err(err) => {
+                if let Error::KeyError(ref kerr) = err {
+                    if kerr.retryable != "" {
+                        // do retry
+                        last_err.replace(err);
+                        sleep(std::cmp::max(2 * i, 500)).await;
+                        continue;
+                    }
+                }
+                // Cannot retry
+                return Err(err);
+            }
+        }
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(()),
+    }
+}
+
 pub async fn do_async_put(cid: u64, key: &str, val: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
-    let _ = txn.put(encode_key(DataType::Raw, key), val.to_owned()).await?;
+    let ekey = encode_key(DataType::Raw, key);
+    let _ = wrap_put(&mut txn, &ekey, val).await?;
     finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())
 }
@@ -87,7 +115,9 @@ pub async fn do_async_batch_put(cid: u64, kvs: Vec<KvPair>) -> Result<RedisValue
     let mut txn = get_transaction(cid).await?;
     for i in 0..kvs.len() {
         let kv = kvs[i].to_owned();
-        txn.put(kv.key().to_owned(), kv.value().to_owned()).await?;
+        let _ = wrap_put(&mut txn,
+            &String::from_utf8(kv.key().to_owned().into()).unwrap(),
+            &String::from_utf8(kv.value().to_owned().into()).unwrap()).await?;
     }
     finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())

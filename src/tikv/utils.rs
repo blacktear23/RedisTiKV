@@ -1,5 +1,5 @@
 use redis_module::{ RedisValue };
-use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions};
+use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions, Backoff};
 use crate::tikv::{PD_ADDRS, TIKV_TRANSACTIONS, TIKV_TNX_CONN_POOL};
 
 pub enum TiKVValue {
@@ -65,7 +65,8 @@ pub async fn finish_txn(cid: u64, txn: Transaction, in_txn: bool) -> Result<u8, 
 
 pub fn get_transaction_option() -> TransactionOptions {
     let opts = TransactionOptions::new_pessimistic();
-    let retry_opts = RetryOptions::default_pessimistic();
+    let mut retry_opts = RetryOptions::default_pessimistic();
+    retry_opts.lock_backoff = Backoff::full_jitter_backoff(2, 500, 10);
     opts.drop_check(CheckLevel::Warn)
         .retry_options(retry_opts)
 }
@@ -103,4 +104,21 @@ pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<
         };
     }
     Ok(ret)
+}
+
+struct TiKVTxnContext {
+    cid: u64,
+    txn: Option<Transaction>,
+    in_txn: bool,
+}
+
+impl TiKVTxnContext {
+    pub fn with_connection_id(cid: u64) -> Self {
+        let in_txn = has_txn(cid);
+        TiKVTxnContext{
+            cid: cid,
+            txn: None,
+            in_txn: in_txn,
+        }
+    }
 }
