@@ -135,20 +135,3 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
         None => Ok(()),
     }
 }
-
-struct TiKVTxnContext {
-    cid: u64,
-    txn: Option<Transaction>,
-    in_txn: bool,
-}
-
-impl TiKVTxnContext {
-    pub fn with_connection_id(cid: u64) -> Self {
-        let in_txn = has_txn(cid);
-        TiKVTxnContext{
-            cid: cid,
-            txn: None,
-            in_txn: in_txn,
-        }
-    }
-}
