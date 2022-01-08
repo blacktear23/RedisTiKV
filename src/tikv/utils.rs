@@ -119,7 +119,7 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
                     if kerr.retryable != "" {
                         // do retry
                         last_err.replace(err);
-                        sleep(std::cmp::max(2 * i, 500)).await;
+                        sleep(std::cmp::min(2 * i, 500)).await;
                         continue;
                     }
                 }
