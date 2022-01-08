@@ -2,13 +2,17 @@ pub enum DataType {
     Raw,
     Hash,
     List,
+    Set,
 }
+
+pub const EMPTY_VALUE: Vec<u8> = vec![];
 
 fn get_prefix(tp: DataType) -> String {
     let dt_prefix = match tp {
         DataType::Raw => "R",
         DataType::Hash => "H",
         DataType::List => "L",
+        DataType::Set => "S",
     };
     format!("$R_{}", dt_prefix)
 }
@@ -79,4 +83,24 @@ pub fn encode_list_elem_key(key: &str, idx: i64) -> Vec<u8> {
     let mut res = format!("{}_D_{}_", prefix, key).into_bytes();
     res.append(&mut idx.to_be_bytes().to_vec());
     res
+}
+
+pub fn encode_set_key(key: &str, member: &str) -> String {
+    let prefix = get_prefix(DataType::Set);
+    format!("{}_D_{}_{}", prefix, key, member)
+}
+
+pub fn encode_set_key_prefix(key: &str) -> String {
+    let prefix = get_prefix(DataType::Set);
+    format!("{}_D_{}_", prefix, key)
+}
+
+pub fn encode_set_key_prefix_end(key: &str) -> String {
+    let prefix = get_prefix(DataType::Set);
+    // '~' is greater than '_'.
+    format!("{}_D_{}~", prefix, key)
+}
+
+pub fn decode_set_member_from_key(key: Vec<u8>) -> Vec<u8> {
+    key.clone().drain(9..).collect()
 }

@@ -61,6 +61,10 @@ redis_module! {
         ["tikv.lpop", tikv_lpop, "", 0, 0, 0],
         ["tikv.lpos", tikv_lpos, "", 0, 0, 0],
         ["tikv.lindex", tikv_lindex, "", 0, 0, 0],
+        // TiKV set series
+        ["tikv.sadd", tikv_sadd, "", 0, 0, 0],
+        ["tikv.scard", tikv_scard, "", 0, 0, 0],
+        ["tikv.smembers", tikv_smembers, "", 0, 0, 0],
         // TiKV load and sync
         ["tikv.load", tikv_load, "", 0, 0, 0],
         ["tikv.scanload", tikv_scan_load, "", 0, 0, 0],
