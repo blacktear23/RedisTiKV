@@ -1,13 +1,13 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
-    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn, sleep},
+    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
     tikv::{
         utils::*,
         encoding::*,
     },
 };
 use std::collections::HashMap;
-use tikv_client::{KvPair, Error, Key, Value, Transaction};
+use tikv_client::{KvPair, Error, Key, Value};
 
 pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
@@ -15,33 +15,6 @@ pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let value = txn.get(encode_key(DataType::Raw, key)).await?;
     finish_txn(cid, txn, in_txn).await?;
     Ok(value.into())
-}
-
-pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
-    let mut last_err: Option<Error> = None;
-    for i in 0..1000 {
-        match txn.put(key.to_owned(), value.to_owned()).await {
-            Ok(_) => {
-                return Ok(());
-            },
-            Err(err) => {
-                if let Error::KeyError(ref kerr) = err {
-                    if kerr.retryable != "" {
-                        // do retry
-                        last_err.replace(err);
-                        sleep(std::cmp::max(2 * i, 500)).await;
-                        continue;
-                    }
-                }
-                // Cannot retry
-                return Err(err);
-            }
-        }
-    }
-    match last_err {
-        Some(err) => Err(err),
-        None => Ok(()),
-    }
 }
 
 pub async fn do_async_put(cid: u64, key: &str, val: &str) -> Result<RedisValue, Error> {

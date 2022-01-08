@@ -78,14 +78,6 @@ impl<'a> error::Error for StringError {
     }
 }
 
-pub async fn do_async_get(url: &str) -> Result<RedisValue, Error> {
-    let client = Client::new();
-    let text = client.get(url).send().await?.text().await?;
-    let ntext = text.replace("\"", "'");
-    let lines = ntext.split("\n").collect::<Vec<&str>>();
-    Ok(lines.into())
-}
-
 pub fn generate_pd_url(pd_addr: &str, func: &str) -> String {
     format!("http://{}/pd/api/v1/{}", pd_addr, func)
 }
@@ -99,4 +91,28 @@ pub fn get_pd_addr() -> Result<String, Error> {
         Some(addr) => Ok(addr.to_string()),
         None => Err(Error::from(String::from("PD addresses not set!"))),
     }
+}
+
+pub async fn do_async_get(url: &str) -> Result<RedisValue, Error> {
+    let client = Client::new();
+    let text = client.get(url).send().await?.text().await?;
+    let ntext = text.replace("\"", "'");
+    let lines = ntext.split("\n").collect::<Vec<&str>>();
+    Ok(lines.into())
+}
+
+pub async fn do_async_delete(url: &str) -> Result<RedisValue, Error> {
+    let client = Client::new();
+    let text = client.delete(url).send().await?.text().await?;
+    let ntext = text.replace("\"", "'");
+    let lines = ntext.split("\n").collect::<Vec<&str>>();
+    Ok(lines.into())
+}
+
+pub async fn do_async_post(url: &str, body: String) -> Result<RedisValue, Error> {
+    let client = Client::new();
+    let text = client.post(url).body(body).send().await?.text().await?;
+    let ntext = text.replace("\"", "'");
+    let lines = ntext.split("\n").collect::<Vec<&str>>();
+    Ok(lines.into())
 }

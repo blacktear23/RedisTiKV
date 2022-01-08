@@ -1,6 +1,7 @@
 use redis_module::{ RedisValue };
 use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions, Backoff};
 use crate::tikv::{PD_ADDRS, TIKV_TRANSACTIONS, TIKV_TNX_CONN_POOL};
+use crate::utils::sleep;
 
 pub enum TiKVValue {
     Null,
@@ -104,6 +105,33 @@ pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<
         };
     }
     Ok(ret)
+}
+
+pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..1000 {
+        match txn.put(key.to_owned(), value.to_owned()).await {
+            Ok(_) => {
+                return Ok(());
+            },
+            Err(err) => {
+                if let Error::KeyError(ref kerr) = err {
+                    if kerr.retryable != "" {
+                        // do retry
+                        last_err.replace(err);
+                        sleep(std::cmp::max(2 * i, 500)).await;
+                        continue;
+                    }
+                }
+                // Cannot retry
+                return Err(err);
+            }
+        }
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(()),
+    }
 }
 
 struct TiKVTxnContext {
