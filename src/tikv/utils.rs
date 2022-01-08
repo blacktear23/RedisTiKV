@@ -69,6 +69,8 @@ pub fn get_transaction_option() -> TransactionOptions {
     let mut retry_opts = RetryOptions::default_pessimistic();
     retry_opts.lock_backoff = Backoff::full_jitter_backoff(2, 500, 10);
     opts.drop_check(CheckLevel::Warn)
+        .use_async_commit()
+        .try_one_pc()
         .retry_options(retry_opts)
 }
 
