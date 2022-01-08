@@ -3,6 +3,7 @@ use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
 use std::sync::{RwLockReadGuard};
 pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER };
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
+use tokio::time::Duration;
 
 pub fn resp_ok() -> RedisValue {
     RedisValue::SimpleStringStatic("OK")
@@ -14,6 +15,10 @@ pub fn resp_sstr(val: &'static str) -> RedisValue {
 
 pub fn resp_int(val: i64) -> RedisValue {
     RedisValue::Integer(val)
+}
+
+pub async fn sleep(ms: u32) {
+    tokio::time::sleep(Duration::from_millis(ms as u64)).await;
 }
 
 // Respose for redis blocked client

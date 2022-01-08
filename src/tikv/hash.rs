@@ -21,9 +21,8 @@ pub async fn do_async_hget(cid: u64, key: &str, field: &str) -> Result<RedisValu
 pub async fn do_async_hput(cid: u64, key: &str, field: &str, val: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
-    let _ = txn 
-        .put(encode_hash_key(key, field), val.to_owned())
-        .await?;
+    let ekey = encode_hash_key(key, field);
+    let _ = wrap_put(&mut txn, &ekey, val).await?;
     finish_txn(cid, txn, in_txn).await?;
     Ok(resp_ok())
 }

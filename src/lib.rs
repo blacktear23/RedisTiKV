@@ -71,6 +71,8 @@ redis_module! {
         ["tikv.sync", tikv_sync, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
+        ["pd.apipost", pd_apipost, "", 0, 0, 0],
+        ["pd.apidelete", pd_apidelete, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
         ["pd.stores", pd_stores, "", 0, 0, 0],
         // TiDB commands

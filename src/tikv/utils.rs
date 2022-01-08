@@ -1,6 +1,7 @@
 use redis_module::{ RedisValue };
-use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions};
+use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions, Backoff};
 use crate::tikv::{PD_ADDRS, TIKV_TRANSACTIONS, TIKV_TNX_CONN_POOL};
+use crate::utils::sleep;
 
 pub enum TiKVValue {
     Null,
@@ -65,8 +66,11 @@ pub async fn finish_txn(cid: u64, txn: Transaction, in_txn: bool) -> Result<u8, 
 
 pub fn get_transaction_option() -> TransactionOptions {
     let opts = TransactionOptions::new_pessimistic();
-    let retry_opts = RetryOptions::default_pessimistic();
+    let mut retry_opts = RetryOptions::default_pessimistic();
+    retry_opts.lock_backoff = Backoff::full_jitter_backoff(2, 500, 10);
     opts.drop_check(CheckLevel::Warn)
+        .use_async_commit()
+        .try_one_pc()
         .retry_options(retry_opts)
 }
 
@@ -103,4 +107,31 @@ pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<
         };
     }
     Ok(ret)
+}
+
+pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..1000 {
+        match txn.put(key.to_owned(), value.to_owned()).await {
+            Ok(_) => {
+                return Ok(());
+            },
+            Err(err) => {
+                if let Error::KeyError(ref kerr) = err {
+                    if kerr.retryable != "" {
+                        // do retry
+                        last_err.replace(err);
+                        sleep(std::cmp::min(2 * i, 500)).await;
+                        continue;
+                    }
+                }
+                // Cannot retry
+                return Err(err);
+            }
+        }
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(()),
+    }
 }

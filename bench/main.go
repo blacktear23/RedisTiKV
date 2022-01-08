@@ -46,7 +46,7 @@ func main() {
 		go w.Run()
 	}
 
-	tests := 100000
+	tests := 10000
 
 	conn := pool.Get()
 	fmt.Printf("Run tikv.put %d\n", tests)
