@@ -136,11 +136,12 @@ pub fn mysql_query(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         return Err(RedisError::WrongArity);
     }
     let cid = get_client_id(ctx);
-    let mut args = args.into_iter().skip(1);
-    let sql = args.next_str()?;
+    let args = args.into_iter().skip(1);
+    let sql_args: Vec<String> = args.map(|i| i.to_string_lossy()).collect();
+    let sql: String = sql_args.join(" ").to_string();
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
-        let res = do_async_mysql_exec(cid, sql, true).await;
+        let res = do_async_mysql_exec(cid, &sql, true).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)
@@ -164,12 +165,13 @@ pub fn mysql_exec(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
-    let mut args = args.into_iter().skip(1);
-    let sql = args.next_str()?;
+    let args = args.into_iter().skip(1);
+    let sql_args: Vec<String> = args.map(|i| i.to_string_lossy()).collect();
+    let sql: String = sql_args.join(" ").to_string();
     let blocked_client = ctx.block_client();
     let cid = get_client_id(ctx);
     tokio_spawn(async move {
-        let res = do_async_mysql_exec(cid, sql, false).await;
+        let res = do_async_mysql_exec(cid, &sql, false).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

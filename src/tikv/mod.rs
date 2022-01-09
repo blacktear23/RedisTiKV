@@ -37,6 +37,7 @@ pub use crate::tikv::{
     hash::{
         tikv_hget, tikv_hset, tikv_hmset, tikv_hmget,
         tikv_hkeys, tikv_hvals, tikv_hexists, tikv_hget_all,
+        tikv_hdel,
     },
     list::{
         tikv_lpush, tikv_rpush, tikv_lrange, tikv_lpop,

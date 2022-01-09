@@ -1,7 +1,6 @@
 use redis_module::{Context, RedisResult, RedisValue, RedisString};
 use crate::{
     utils::{redis_resp, tokio_spawn, get_binary_path, proc_exec},
-    tikv::utils::get_pd_addrs,
 };
 use tokio::io::{Error, ErrorKind};
 
