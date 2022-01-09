@@ -2,6 +2,11 @@ use std::borrow::Cow;
 use mysql_async::{Pool, Error, Value, Transaction};
 use redis_module::RedisValue;
 use crate::tidb::{MYSQL_TRANSACTIONS, GLOBAL_MYSQL_POOL};
+use crate::pd::utils::get_pd_addr;
+use serde_json::{Value as JsonValue, Map};
+use etcd_client::{Client, GetOptions};
+
+const TIDB_SERVER_INFO_PATH: &str = "/tidb/server/info";
 
 pub fn has_transaction(cid: u64) -> bool {
     MYSQL_TRANSACTIONS.read().unwrap().contains_key(&cid)
@@ -24,6 +29,28 @@ pub fn get_pool() -> Result<Box<Pool>, Error> {
         },
         None => Err(Error::Other(Cow::Owned(String::from("TiDB Not connected"))))
     }
+}
+
+fn parse_tidb_status_port(s: &str) -> Option<String> {
+    match serde_json::from_str::<Map<String, JsonValue>>(s) {
+        Ok(v) => // TODO: support TLS.
+            Some(format!("{}:{}", v["ip"].to_string().replace("\"", ""), v["status_port"])),
+        Err(_) => None,
+    }
+}
+
+pub async fn do_async_get_tidb_status_port() -> Option<String> {
+    let pd_addr = get_pd_addr().unwrap();
+    let mut client = Client::connect([pd_addr], None).await.unwrap();
+
+    let resp = client.get(TIDB_SERVER_INFO_PATH, Some(GetOptions::new().with_prefix())).await.unwrap();
+    for kv in resp.kvs() {
+        match parse_tidb_status_port(kv.value_str().unwrap()) {
+            Some(s) => return Some(s),
+            _ => (),
+        }
+    };
+    None
 }
 
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
