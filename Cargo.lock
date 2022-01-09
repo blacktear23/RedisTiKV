@@ -1795,6 +1795,7 @@ dependencies = [
  "mysql_async",
  "redis-module",
  "reqwest",
+ "serde_json",
  "tikv-client",
  "tokio",
 ]

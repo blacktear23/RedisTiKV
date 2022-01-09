@@ -6,6 +6,10 @@ use std::{
 };
 use redis_module::RedisValue;
 use crate::tikv::PD_ADDRS;
+use serde_json::{
+    to_string_pretty,
+    Value,
+};
 
 #[derive(Debug)]
 pub enum Error {
@@ -82,6 +86,19 @@ pub fn generate_pd_url(pd_addr: &str, func: &str) -> String {
     format!("http://{}/pd/api/v1/{}", pd_addr, func)
 }
 
+pub fn format_json(json_data: String) -> Result<RedisValue, Error> {
+    let json_val: Value = match serde_json::from_str(&json_data) {
+        Ok(val) => val,
+        Err(err) => {
+            return Err(Error::from(err.to_string()));
+        }
+    };
+    match to_string_pretty(&json_val){
+        Ok(val) => Ok(val.replace("\"", "'").split("\n").collect::<Vec<&str>>().into()),
+        Err(err) => Err(Error::from(err.to_string())),
+    }
+}
+
 pub fn get_pd_addr() -> Result<String, Error> {
     let guard = PD_ADDRS.read().unwrap();
     if guard.is_none() {
@@ -115,4 +132,11 @@ pub async fn do_async_post(url: &str, body: String) -> Result<RedisValue, Error>
     let ntext = text.replace("\"", "'");
     let lines = ntext.split("\n").collect::<Vec<&str>>();
     Ok(lines.into())
+}
+
+pub async fn do_async_get_members(url: &str) -> Result<RedisValue, Error> {
+    let client = Client::new();
+    let text = client.get(url).send().await?.text().await?;
+    let output = format_json(text)?;
+    Ok(output)
 }

@@ -1,9 +1,13 @@
 use std::future::Future;
 use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
 use std::sync::{RwLockReadGuard};
-pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER };
+pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER, BIN_PATH };
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
-use tokio::time::Duration;
+use tokio::{
+    time::Duration,
+    process::Command,
+    io::{Error, ErrorKind},
+};
 
 pub fn resp_ok() -> RedisValue {
     RedisValue::SimpleStringStatic("OK")
@@ -74,6 +78,24 @@ where
 
 pub fn get_client_id(ctx: &Context) -> u64 {
     unsafe{ RedisModule_GetClientId.unwrap()(ctx.get_raw()) }
+}
+
+pub async fn proc_exec(command: String, args: Vec<String>) -> Result<String, Error> {
+    let output = Command::new(command).args(&args).output().await?;
+    match String::from_utf8(output.stdout) {
+        Ok(stdout) => Ok(stdout),
+        Err(err) => {
+            Err(Error::new(ErrorKind::Other, err.to_string()))
+        }
+    }
+}
+
+pub fn get_binary_path() -> String {
+    let guard = BIN_PATH.read().unwrap();
+    if guard.is_none() {
+        return String::from("");
+    }
+    guard.as_ref().unwrap().clone()
 }
 
 // Try to register a redis command, if got error, just log a warning.

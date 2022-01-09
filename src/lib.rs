@@ -6,6 +6,7 @@ extern crate lazy_static;
 extern crate tokio;
 extern crate reqwest;
 extern crate tikv_client;
+extern crate serde_json;
 
 mod init;
 mod utils;
@@ -75,6 +76,7 @@ redis_module! {
         ["pd.apidelete", pd_apidelete, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
         ["pd.stores", pd_stores, "", 0, 0, 0],
+        ["pd.regions", pd_regions, "", 0, 0, 0],
         // TiDB commands
         ["tidb.conn", mysql_conn, "", 0, 0, 0],
         ["tidb.query", mysql_query, "", 0, 0, 0],
