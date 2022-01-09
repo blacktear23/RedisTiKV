@@ -3,6 +3,7 @@ extern crate redis_module;
 #[macro_use]
 extern crate lazy_static;
 
+extern crate etcd_client;
 extern crate tokio;
 extern crate reqwest;
 extern crate tikv_client;
@@ -89,6 +90,7 @@ redis_module! {
         ["tidb.begin", mysql_begin, "", 0, 0, 0],
         ["tidb.commit", mysql_commit, "", 0, 0, 0],
         ["tidb.rollback", mysql_rollback, "", 0, 0, 0],
+        ["tidb.api", tidb_api, "", 0, 0, 0],
         // JS commands
         ["js.eval", js_eval, "", 0, 0, 0],
     ],
