@@ -16,4 +16,6 @@ lazy_static! {
 pub use crate::tidb::commands::{
     mysql_begin, mysql_commit, mysql_rollback,
     mysql_conn, mysql_close, mysql_exec, mysql_query,
+
+    tidb_api,
 };
