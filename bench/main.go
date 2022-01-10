@@ -57,7 +57,7 @@ func main() {
 		key := "pkey-" + strconv.Itoa(i)
 		value := "pvaluedata-" + strconv.Itoa(i) + "-123456789809"
 		queue <- Job{
-			Name: "tikv.put",
+			Name: "tikv.cput",
 			Args: []interface{}{key, value},
 			Wg:   &wg,
 		}

@@ -299,3 +299,61 @@ pub fn tikv_redis_set(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let _ = rkey.write(value)?;
     Ok(resp_int(1))
 }
+
+pub async fn do_async_cached_put(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, key: String, val: &str) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let ekey = encode_key(DataType::Raw, &key.clone());
+    let _ = wrap_put(&mut txn, &ekey, val).await?;
+    finish_txn(cid, txn, in_txn).await?;
+    match ctx.lock().call("TIKV.REDIS_SET", &[&key, val]) {
+        Err(err) => {
+            return Err(Error::StringError(err.to_string()));
+        },
+        _ => {},
+    };
+    Ok(resp_int(1))
+}
+
+pub fn tikv_cached_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 3 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let value = args.next_str()?;
+
+    let cid = get_client_id(ctx);
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+       let tctx = ThreadSafeContext::with_blocked_client(blocked_client);
+        let res = do_async_cached_put(&tctx, cid, key.to_string(), value).await;
+        redis_resp_with_ctx(&tctx, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_cached_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+    let args = args.into_iter().skip(1);
+    let mut keys: Vec<String> = Vec::new();
+    args.for_each(|s| {
+        keys.push(s.to_string());
+        let rkey = ctx.open_key_writable(&s);
+        match rkey.delete() {
+            Err(err) => {
+                ctx.log_notice(&format!("Delete Redis Key {} got error: {}", s.to_string(), err.to_string()));
+            },
+            _ => {},
+        }
+    });
+    let cid = get_client_id(ctx);
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_batch_del(cid, keys).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}

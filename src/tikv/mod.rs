@@ -30,7 +30,7 @@ pub use crate::tikv::{
     string::{
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put,
         tikv_del, tikv_exists, tikv_scan,
-        tikv_cached_get, tikv_redis_set,
+        tikv_cached_get, tikv_redis_set, tikv_cached_put, tikv_cached_del,
     },
     sync::{
         tikv_load, tikv_scan_load, tikv_sync,

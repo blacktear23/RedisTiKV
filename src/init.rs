@@ -15,7 +15,7 @@ use crate::{
             do_async_close,
         },
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
-        tikv_ctl, tikv_cached_get,
+        tikv_ctl, tikv_cached_get, tikv_cached_put, tikv_cached_del,
     },
     pd::pd_ctl,
 };
@@ -164,11 +164,14 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     if replace_system {
         // Try to replace system command automatically
         // try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
+        // try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        // try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
         try_redis_command!(ctx, "get", tikv_cached_get, "", 0, 0, 0);
-        try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        try_redis_command!(ctx, "set", tikv_cached_put, "", 0, 0, 0);
+        try_redis_command!(ctx, "del", tikv_cached_del, "", 0, 0, 0);
+
         try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
         try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
-        try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
         try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
     }
 
