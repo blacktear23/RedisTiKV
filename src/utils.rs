@@ -64,6 +64,7 @@ where
     T: Future + Send + 'static,
     T::Output: Send + 'static,
 {
+    /*
     let mut counter = GLOBAL_COUNTER.lock().unwrap();
     *counter += 1;
     let tmp: RwLockReadGuard<_>;
@@ -72,6 +73,9 @@ where
     } else {
         tmp = GLOBAL_RT2.read().unwrap();
     }
+    let hdl = tmp.as_ref().unwrap();
+    */
+    let tmp = GLOBAL_RT1.read().unwrap();
     let hdl = tmp.as_ref().unwrap();
     hdl.spawn(future);
 }

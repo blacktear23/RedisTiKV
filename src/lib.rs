@@ -48,6 +48,8 @@ redis_module! {
         ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
         ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
         ["tikv.exists", tikv_exists, "", 0, 0, 0],
+        ["tikv.cget", tikv_cached_get, "", 0, 0, 0],
+        ["tikv.redis_set", tikv_redis_set, "", 0, 0, 0],
         // TiKV hash series
         ["tikv.hset", tikv_hset, "", 0, 0, 0],
         ["tikv.hget", tikv_hget, "", 0, 0, 0],
