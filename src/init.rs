@@ -16,6 +16,7 @@ use crate::{
         },
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
         tikv_ctl, tikv_cached_get, tikv_cached_put, tikv_cached_del,
+        set_instance_id,
     },
     pd::pd_ctl,
 };
@@ -41,6 +42,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         let mut start_pd_addrs = false;
         let mut start_mysql_addrs = false;
         let mut start_bin_path = false;
+        let mut start_instance_id = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -55,6 +57,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_pd_addrs {
                 pd_addrs = ss.clone();
                 start_pd_addrs = false;
+                return
             }
             if ss == "autoconnmysql" {
                 auto_connect_mysql = true;
@@ -64,6 +67,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_mysql_addrs {
                 mysql_url = ss.clone();
                 start_mysql_addrs = false;
+                return
             }
             if ss == "binpath" {
                 start_bin_path = true;
@@ -73,6 +77,19 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_bin_path {
                 bin_path = ss.clone();
                 start_bin_path = false;
+            }
+            if ss == "instanceid" {
+                start_instance_id = true;
+                return
+            }
+            if start_instance_id {
+                let instance_id_str = ss.clone();
+                match instance_id_str.parse::<u64>() {
+                    Ok(val) => set_instance_id(val),
+                    Err(_) => set_instance_id(0),
+                };
+                start_instance_id = false;
+                return
             }
         });
     }

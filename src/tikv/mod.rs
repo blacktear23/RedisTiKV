@@ -19,6 +19,18 @@ lazy_static! {
     pub static ref TIKV_TNX_CONN_POOL: Arc<Mutex<LinkedList<TransactionClient>>> = Arc::new(Mutex::new(LinkedList::new()));
 }
 
+pub static mut INSTANCE_ID: u64 = 0;
+
+pub fn set_instance_id(id: u64) {
+    unsafe {
+        INSTANCE_ID = id;
+    }
+}
+
+pub fn get_instance_id() -> u64 {
+    unsafe {INSTANCE_ID}
+}
+
 // Export commands
 pub use crate::tikv::{
     init::{
