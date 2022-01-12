@@ -6,19 +6,22 @@ extern crate lazy_static;
 extern crate etcd_client;
 extern crate tokio;
 extern crate reqwest;
-extern crate serde_json;
 extern crate tikv_client;
+extern crate serde_json;
+extern crate quick_js;
 
 mod init;
 mod utils;
 mod tikv;
 mod pd;
 mod tidb;
+mod js;
 
 use init::{ tikv_init, tikv_deinit };
 use crate::tikv::*;
 use crate::pd::*;
 use crate::tidb::*;
+use crate::js::*;
 
 // register functions
 redis_module! {
@@ -45,6 +48,11 @@ redis_module! {
         ["tikv.mput", tikv_batch_put, "", 0, 0, 0],
         ["tikv.mset", tikv_batch_put, "", 0, 0, 0],
         ["tikv.exists", tikv_exists, "", 0, 0, 0],
+        ["tikv.cget", tikv_cached_get, "", 0, 0, 0],
+        ["tikv.cput", tikv_cached_put, "", 0, 0, 0],
+        ["tikv.cset", tikv_cached_put, "", 0, 0, 0],
+        ["tikv.cdel", tikv_cached_del, "", 0, 0, 0],
+        ["tikv.redis_set", tikv_redis_set, "", 0, 0, 0],
         // TiKV hash series
         ["tikv.hset", tikv_hset, "", 0, 0, 0],
         ["tikv.hget", tikv_hget, "", 0, 0, 0],
@@ -54,6 +62,7 @@ redis_module! {
         ["tikv.hmset", tikv_hmset, "", 0, 0, 0],
         ["tikv.hmget", tikv_hmget, "", 0, 0, 0],
         ["tikv.hexists", tikv_hexists, "", 0, 0, 0],
+        ["tikv.hdel", tikv_hdel, "", 0, 0, 0],
         // TiKV list series
         ["tikv.lpush", tikv_lpush, "", 0, 0, 0],
         ["tikv.rpush", tikv_rpush, "", 0, 0, 0],
@@ -77,6 +86,7 @@ redis_module! {
         ["pd.apidelete", pd_apidelete, "", 0, 0, 0],
         ["pd.members", pd_members, "", 0, 0, 0],
         ["pd.stores", pd_stores, "", 0, 0, 0],
+        ["pd.regions", pd_regions, "", 0, 0, 0],
         // TiDB commands
         ["tidb.conn", mysql_conn, "", 0, 0, 0],
         ["tidb.query", mysql_query, "", 0, 0, 0],
@@ -85,7 +95,8 @@ redis_module! {
         ["tidb.begin", mysql_begin, "", 0, 0, 0],
         ["tidb.commit", mysql_commit, "", 0, 0, 0],
         ["tidb.rollback", mysql_rollback, "", 0, 0, 0],
-
         ["tidb.api", tidb_api, "", 0, 0, 0],
+        // JS commands
+        ["js.eval", js_eval, "", 0, 0, 0],
     ],
 }

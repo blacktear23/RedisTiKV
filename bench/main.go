@@ -46,7 +46,7 @@ func main() {
 		go w.Run()
 	}
 
-	tests := 10000
+	tests := 40000
 
 	conn := pool.Get()
 	fmt.Printf("Run tikv.put %d\n", tests)
@@ -57,7 +57,7 @@ func main() {
 		key := "pkey-" + strconv.Itoa(i)
 		value := "pvaluedata-" + strconv.Itoa(i) + "-123456789809"
 		queue <- Job{
-			Name: "tikv.put",
+			Name: "tikv.cput",
 			Args: []interface{}{key, value},
 			Wg:   &wg,
 		}
@@ -73,7 +73,7 @@ func main() {
 	for i := 0; i < tests; i++ {
 		key := "pkey-" + strconv.Itoa(i)
 		queue <- Job{
-			Name: "tikv.get",
+			Name: "tikv.cget",
 			Args: []interface{}{key},
 			Wg:   &wg,
 		}

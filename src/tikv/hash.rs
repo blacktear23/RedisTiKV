@@ -1,6 +1,6 @@
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
-    utils::{redis_resp, resp_ok, get_client_id, tokio_spawn},
+    utils::{redis_resp, resp_int, resp_ok, get_client_id, tokio_spawn},
     tikv::{
         utils::*,
         encoding::*,
@@ -63,6 +63,19 @@ pub async fn do_async_batch_hget(cid: u64, keys: Vec<String>) -> Result<RedisVal
         .collect();
     finish_txn(cid, txn, in_txn).await?;
     Ok(values.into())
+}
+
+pub async fn do_async_batch_hdel(cid: u64, keys: Vec<String>) -> Result<RedisValue, Error> {
+    let in_txn = has_txn(cid);
+    let mut txn = get_transaction(cid).await?;
+    let mut count = 0;
+    for i in 0..keys.len() {
+        let key = keys[i].to_owned();
+        txn.delete(key).await?;
+        count += 1;
+    }
+    finish_txn(cid, txn, in_txn).await?;
+    Ok(resp_int(count))
 }
 
 pub async fn do_async_hscan_fields(cid: u64, key: &str) -> Result<RedisValue, Error> {
@@ -239,4 +252,20 @@ pub fn tikv_hexists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_hdel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    if args.len() < 3 {
+        return Err(RedisError::WrongArity);
+    }
+    let cid = get_client_id(ctx);
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let fields: Vec<String> = args.map(|s| encode_hash_key(key, &s.to_string())).collect();
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_batch_hdel(cid, fields).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)    
 }

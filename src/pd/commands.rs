@@ -16,6 +16,18 @@ pub fn pd_members(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     Ok(RedisValue::NoReply)
 }
 
+pub fn pd_regions(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
+    let pd_addr = get_pd_addr()?;
+    let url = generate_pd_url(&pd_addr, "regions");
+
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_get_members(&url).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
 pub fn pd_stores(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     let pd_addr = get_pd_addr()?;
     let url = generate_pd_url(&pd_addr, "stores");

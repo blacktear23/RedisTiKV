@@ -15,7 +15,10 @@ use crate::{
             do_async_close,
         },
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
+        tikv_ctl, tikv_cached_get, tikv_cached_put, tikv_cached_del,
+        set_instance_id,
     },
+    pd::pd_ctl,
 };
 
 lazy_static! {
@@ -23,6 +26,7 @@ lazy_static! {
     pub static ref GLOBAL_RT2: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
     pub static ref GLOBAL_COUNTER: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref GLOBAL_RUNNING: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
+    pub static ref BIN_PATH: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
 }
 
 // Initial tokio main executor in other thread
@@ -32,9 +36,13 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut auto_connect_mysql: bool = false;
     let mut pd_addrs: String = String::from("");
     let mut mysql_url: String = String::from("");
+    let mut support_binary: bool = false;
+    let mut bin_path: String = String::from("");
     if args.len() > 0 {
         let mut start_pd_addrs = false;
         let mut start_mysql_addrs = false;
+        let mut start_bin_path = false;
+        let mut start_instance_id = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -49,6 +57,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_pd_addrs {
                 pd_addrs = ss.clone();
                 start_pd_addrs = false;
+                return
             }
             if ss == "autoconnmysql" {
                 auto_connect_mysql = true;
@@ -58,6 +67,29 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_mysql_addrs {
                 mysql_url = ss.clone();
                 start_mysql_addrs = false;
+                return
+            }
+            if ss == "binpath" {
+                start_bin_path = true;
+                support_binary = true;
+                return;
+            }
+            if start_bin_path {
+                bin_path = ss.clone();
+                start_bin_path = false;
+            }
+            if ss == "instanceid" {
+                start_instance_id = true;
+                return
+            }
+            if start_instance_id {
+                let instance_id_str = ss.clone();
+                match instance_id_str.parse::<u64>() {
+                    Ok(val) => set_instance_id(val),
+                    Err(_) => set_instance_id(0),
+                };
+                start_instance_id = false;
+                return
             }
         });
     }
@@ -104,6 +136,10 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             });
         }
 
+        if bin_path != "" {
+            BIN_PATH.write().unwrap().replace(bin_path);
+        }
+
         runtime.block_on(async {
             loop {
                 sleep(Duration::from_secs(1)).await;
@@ -144,12 +180,21 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
 
     if replace_system {
         // Try to replace system command automatically
-        try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
-        try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        // try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
+        // try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+        // try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
+        try_redis_command!(ctx, "get", tikv_cached_get, "", 0, 0, 0);
+        try_redis_command!(ctx, "set", tikv_cached_put, "", 0, 0, 0);
+        try_redis_command!(ctx, "del", tikv_cached_del, "", 0, 0, 0);
+
         try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
         try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
-        try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
         try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
+    }
+
+    if support_binary {
+        try_redis_command!(ctx, "tikv.ctl", tikv_ctl, "", 0, 0, 0);
+        try_redis_command!(ctx, "pd.ctl", pd_ctl, "", 0, 0, 0);
     }
 
     Status::Ok

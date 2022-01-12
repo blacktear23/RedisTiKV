@@ -1,3 +1,5 @@
+use crate::tikv::get_instance_id;
+
 pub enum DataType {
     Raw,
     Hash,
@@ -14,7 +16,8 @@ fn get_prefix(tp: DataType) -> String {
         DataType::List => "L",
         DataType::Set => "S",
     };
-    format!("$R_{}", dt_prefix)
+    let uid = get_instance_id().to_be_bytes();
+    format!("$R_{}_{}", String::from_utf8(uid.to_vec()).unwrap(), dt_prefix)
 }
 
 pub fn encode_key(tp: DataType, key: &str) -> String {
@@ -35,7 +38,7 @@ pub fn encode_endkey(tp: DataType) -> String {
 }
 
 pub fn decode_key(key: Vec<u8>) -> Vec<u8> {
-    key.clone().drain(5..).collect()
+    key.clone().drain(14..).collect()
 }
 
 // two i64 integers (l, r) are used to store the left-bound(inclusive) index and right-bound(exclusive) index of the
@@ -70,7 +73,7 @@ pub fn encode_hash_prefix_end(key: &str) -> String {
 }
 
 pub fn decode_hash_field(rkey: Vec<u8>, key: &str) -> Vec<u8> {
-    rkey.clone().drain(7 + key.len() + 1..).collect()
+    rkey.clone().drain(16 + key.len() + 1..).collect()
 }
 
 pub fn encode_list_meta_key(key: &str) -> String {
@@ -102,5 +105,5 @@ pub fn encode_set_key_prefix_end(key: &str) -> String {
 }
 
 pub fn decode_set_member_from_key(key: Vec<u8>) -> Vec<u8> {
-    key.clone().drain(9..).collect()
+    key.clone().drain(18..).collect()
 }
