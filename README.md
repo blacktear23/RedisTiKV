@@ -70,12 +70,13 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 ## Module Parameters
 
 ```
-module load libredistikv.so [replacesys] [autoconn] [PD_ADDR1,PD_ADDR2] [autoconnmysql] [MYSQL_URL]
+module load libredistikv.so [replacesys] [autoconn] [PD_ADDR1,PD_ADDR2] [autoconnmysql] [MYSQL_URL] [instanceid] [INSTANCE_ID]
 ```
 
 * replacesys: replace system command. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
 * autoconn: auto connect to TiKV with followed PD addresses when module loaded. Many address separated by `,`
 * autoconnmysql: auto connect to MySQL with followed MYSQL\_URL when module loaded.
+* instanceid: instance id, followed with a number. It will encoded as uint64 and add to the key prefix to support multi user.
 
 **Notice**: MySQL URL format: `mysql:\\[user]:[password]@[address]:[port]\[db]`
 
