@@ -1,6 +1,6 @@
 use std::future::Future;
 use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
-pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER, BIN_PATH };
+pub use crate::init::{ GLOBAL_RT, GLOBAL_COUNTER, BIN_PATH };
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
 use tokio::{
     time::Duration,
@@ -63,18 +63,7 @@ where
     T: Future + Send + 'static,
     T::Output: Send + 'static,
 {
-    /*
-    let mut counter = GLOBAL_COUNTER.lock().unwrap();
-    *counter += 1;
-    let tmp: RwLockReadGuard<_>;
-    if *counter % 2 == 0 {
-        tmp = GLOBAL_RT1.read().unwrap();
-    } else {
-        tmp = GLOBAL_RT2.read().unwrap();
-    }
-    let hdl = tmp.as_ref().unwrap();
-    */
-    let tmp = GLOBAL_RT1.read().unwrap();
+    let tmp = GLOBAL_RT.read().unwrap();
     let hdl = tmp.as_ref().unwrap();
     hdl.spawn(future);
 }

@@ -22,8 +22,7 @@ use crate::{
 };
 
 lazy_static! {
-    pub static ref GLOBAL_RT1: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
-    pub static ref GLOBAL_RT2: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
+    pub static ref GLOBAL_RT: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
     pub static ref GLOBAL_COUNTER: Arc<Mutex<u32>> = Arc::new(Mutex::new(0));
     static ref GLOBAL_RUNNING: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
     pub static ref BIN_PATH: Arc<RwLock<Option<String>>> = Arc::new(RwLock::new(None));
@@ -32,6 +31,7 @@ lazy_static! {
 // Initial tokio main executor in other thread
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut replace_system: bool = false;
+    let mut replace_system_with_cached_api: bool = false;
     let mut auto_connect: bool = false;
     let mut auto_connect_mysql: bool = false;
     let mut pd_addrs: String = String::from("");
@@ -48,6 +48,11 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             let ss = s.to_string();
             if ss == "replacesys" {
                 replace_system = true;
+                return;
+            }
+            if ss == "replacesyscache" {
+                replace_system = true;
+                replace_system_with_cached_api = true;
                 return;
             }
             if ss == "autoconn" {
@@ -103,7 +108,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
-        GLOBAL_RT1.write().unwrap().replace(Box::new(handle));
+        GLOBAL_RT.write().unwrap().replace(Box::new(handle));
         *GLOBAL_RUNNING.write().unwrap() = 1;
         let tctx = ThreadSafeContext::new();
         tctx.lock().log_notice("Tokio Runtime 1 Created");
@@ -167,8 +172,6 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     if enable_prometheus_http {
         thread::spawn(move || {
             let runtime = Runtime::new().unwrap();
-            let handle = runtime.handle().clone();
-            GLOBAL_RT2.write().unwrap().replace(Box::new(handle));
             let tctx = ThreadSafeContext::new();
             tctx.lock().log_notice("Tokio Runtime Prometheus Created");
             runtime.block_on(async {
@@ -184,35 +187,17 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         });
     }
 
-    thread::spawn(move || {
-        let runtime = Runtime::new().unwrap();
-        let handle = runtime.handle().clone();
-        GLOBAL_RT2.write().unwrap().replace(Box::new(handle));
-        *GLOBAL_RUNNING.write().unwrap() = 1;
-        let tctx = ThreadSafeContext::new();
-        tctx.lock().log_notice("Tokio Runtime 2 Created");
-        runtime.block_on(async {
-            loop {
-                sleep(Duration::from_secs(1)).await;
-                if *GLOBAL_RUNNING.read().unwrap() == 0 {
-                    return;
-                }
-            }
-        });
-        println!("Tokio Runtime 2 Finished");
-        runtime.shutdown_timeout(Duration::from_secs(10));
-        println!("Tokio Runtime 2 Shutdown");
-    });
-
     if replace_system {
         // Try to replace system command automatically
-        // try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
-        // try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
-        // try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
-        try_redis_command!(ctx, "get", tikv_cached_get, "", 0, 0, 0);
-        try_redis_command!(ctx, "set", tikv_cached_put, "", 0, 0, 0);
-        try_redis_command!(ctx, "del", tikv_cached_del, "", 0, 0, 0);
-
+        if replace_system_with_cached_api {
+            try_redis_command!(ctx, "get", tikv_cached_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "set", tikv_cached_put, "", 0, 0, 0);
+            try_redis_command!(ctx, "del", tikv_cached_del, "", 0, 0, 0);
+        } else {
+            try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
+            try_redis_command!(ctx, "del", tikv_del, "", 0, 0, 0);
+        }
         try_redis_command!(ctx, "mget", tikv_batch_get, "", 0, 0, 0);
         try_redis_command!(ctx, "mset", tikv_batch_put, "", 0, 0, 0);
         try_redis_command!(ctx, "exists", tikv_exists, "", 0, 0, 0);
