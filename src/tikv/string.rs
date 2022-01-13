@@ -4,6 +4,7 @@ use crate::{
     tikv::{
         utils::*,
         encoding::*,
+        metrics::*,
     },
 };
 use std::collections::HashMap;
@@ -107,6 +108,8 @@ pub async fn do_async_exists(cid: u64, keys: Vec<String>) -> Result<RedisValue, 
 }
 
 pub fn tikv_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["get"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -123,6 +126,8 @@ pub fn tikv_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["set"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -139,6 +144,8 @@ pub fn tikv_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["del"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -154,6 +161,8 @@ pub fn tikv_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["scan"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -183,10 +192,11 @@ pub fn tikv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_batch_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["mget"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
-
     let cid = get_client_id(ctx);
     let keys: Vec<String> = args.into_iter().skip(1).map(|s| s.to_string()).collect();
     let blocked_client = ctx.block_client();
@@ -198,6 +208,8 @@ pub fn tikv_batch_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_batch_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["mset"]).inc();
     let num_kvs = args.len() - 1;
     if num_kvs % 2 != 0 {
         return Err(RedisError::WrongArity);
@@ -220,6 +232,8 @@ pub fn tikv_batch_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_exists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["exists"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -260,6 +274,8 @@ pub async fn do_async_cached_get(ctx: &ThreadSafeContext<BlockedClient>, cid: u6
 }
 
 pub fn tikv_cached_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["get"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -316,6 +332,8 @@ pub async fn do_async_cached_put(ctx: &ThreadSafeContext<BlockedClient>, cid: u6
 }
 
 pub fn tikv_cached_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["set"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -334,6 +352,8 @@ pub fn tikv_cached_put(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_cached_del(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["del"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }

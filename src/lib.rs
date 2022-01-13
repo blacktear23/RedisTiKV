@@ -9,6 +9,7 @@ extern crate reqwest;
 extern crate tikv_client;
 extern crate serde_json;
 extern crate quick_js;
+extern crate prometheus;
 
 mod init;
 mod utils;
@@ -34,6 +35,7 @@ redis_module! {
         // TiKV commands
         ["tikv.conn", tikv_connect, "", 0, 0, 0],
         ["tikv.close", tikv_close, "", 0, 0, 0],
+        ["tikv.status", tikv_status, "", 0, 0, 0],
         // TiKV transaction
         ["tikv.begin", tikv_begin, "", 0, 0, 0],
         ["tikv.commit", tikv_commit, "", 0, 0, 0],
