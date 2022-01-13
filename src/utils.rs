@@ -1,6 +1,5 @@
 use std::future::Future;
 use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
-use std::sync::{RwLockReadGuard};
 pub use crate::init::{ GLOBAL_RT1, GLOBAL_RT2, GLOBAL_COUNTER, BIN_PATH };
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
 use tokio::{

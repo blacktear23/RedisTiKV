@@ -2,6 +2,8 @@
 extern crate redis_module;
 #[macro_use]
 extern crate lazy_static;
+#[macro_use]
+extern crate prometheus;
 
 extern crate etcd_client;
 extern crate tokio;
@@ -9,7 +11,7 @@ extern crate reqwest;
 extern crate tikv_client;
 extern crate serde_json;
 extern crate quick_js;
-extern crate prometheus;
+extern crate hyper;
 
 mod init;
 mod utils;

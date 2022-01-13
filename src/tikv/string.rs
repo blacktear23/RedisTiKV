@@ -1,4 +1,4 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, KeyType, ThreadSafeContext, BlockedClient, key::RedisKeyWritable, native_types::RedisType};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString, KeyType, ThreadSafeContext, BlockedClient};
 use crate::{
     utils::{redis_resp, resp_ok, get_client_id, tokio_spawn, redis_resp_with_ctx, resp_int},
     tikv::{

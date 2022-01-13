@@ -63,5 +63,7 @@ pub use crate::tikv::{
     procexec::{
         tikv_ctl,
     },
-    metrics::{tikv_status},
+    metrics::{
+        tikv_status, prometheus_server,
+    },
 };

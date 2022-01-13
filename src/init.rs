@@ -16,7 +16,7 @@ use crate::{
         },
         tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
         tikv_ctl, tikv_cached_get, tikv_cached_put, tikv_cached_del,
-        set_instance_id,
+        set_instance_id, get_instance_id, prometheus_server, metrics::INSTANCE_ID_GAUGER,
     },
     pd::pd_ctl,
 };
@@ -38,6 +38,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut mysql_url: String = String::from("");
     let mut support_binary: bool = false;
     let mut bin_path: String = String::from("");
+    let mut enable_prometheus_http: bool = false;
     if args.len() > 0 {
         let mut start_pd_addrs = false;
         let mut start_mysql_addrs = false;
@@ -88,7 +89,12 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                     Ok(val) => set_instance_id(val),
                     Err(_) => set_instance_id(0),
                 };
+                INSTANCE_ID_GAUGER.set(get_instance_id() as i64);
                 start_instance_id = false;
+                return
+            }
+            if ss == "enablepromhttp" {
+                enable_prometheus_http = true;
                 return
             }
         });
@@ -157,6 +163,26 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         runtime.shutdown_timeout(Duration::from_secs(10));
         println!("Tokio Runtime 1 Shutdown");
     });
+
+    if enable_prometheus_http {
+        thread::spawn(move || {
+            let runtime = Runtime::new().unwrap();
+            let handle = runtime.handle().clone();
+            GLOBAL_RT2.write().unwrap().replace(Box::new(handle));
+            let tctx = ThreadSafeContext::new();
+            tctx.lock().log_notice("Tokio Runtime Prometheus Created");
+            runtime.block_on(async {
+                match prometheus_server().await {
+                    Ok(()) => {
+                        tctx.lock().log_notice("Prometheus Server Stopped");
+                    },
+                    Err(err) => {
+                        tctx.lock().log_notice(&format!("Prometheus Server Stopped with Error: {:}", err));
+                    },
+                };
+            });
+        });
+    }
 
     thread::spawn(move || {
         let runtime = Runtime::new().unwrap();

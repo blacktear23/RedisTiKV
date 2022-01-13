@@ -1972,6 +1972,7 @@ name = "redistikv"
 version = "99.99.99"
 dependencies = [
  "etcd-client",
+ "hyper",
  "lazy_static",
  "mysql_async",
  "prometheus 0.13.0",
