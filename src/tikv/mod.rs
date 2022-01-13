@@ -12,6 +12,7 @@ pub mod utils;
 pub mod trans;
 pub mod sync;
 pub mod procexec;
+pub mod metrics;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -61,5 +62,6 @@ pub use crate::tikv::{
     },
     procexec::{
         tikv_ctl,
-    }
+    },
+    metrics::{tikv_status},
 };
