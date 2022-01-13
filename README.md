@@ -54,6 +54,10 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.begin: Start transaction for current client.
 * tikv.commit: Commit current client's transaction.
 * tikv.rollback: Rollback current client's transaction.
+* tikv.cget [KEY]: Get key's data from Redis memory first if Null then get it from TiKV and then cache it into Redis.
+* tikv.cset [KEY] [VALUE]: Put a Key-Value pair into TiKV, if successed, then put it into Redis.
+* tikv.cdel [KEY1] [KEY2]..: Delete key data from Redis cache first and then delete it from TiKV.
+* tikv.status: Get metrics info from RedisTiKV module.
 
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
@@ -116,10 +120,10 @@ Then the `GET` and `SET` command is replaced by `TIKV.GET` and `TIKV.SET`.
 If we not encode KEY, you can get and set any TiKV data. So this is very danger for using RedisModule with a TiKV which provide data for TiDB service. And without key encoding the module can not support multi data type such as Hash or List. So add a Key prefix is safe than without it and we can support more data type. The current key encoding format is:
 
 ```
-$R_[DATATYPE(1Byte)]_[KEY(nByte)]
+$R_[INSTANCE_ID(8Byte)]_[DATATYPE(1Byte)]_[KEY(nByte)]
 ```
 
-As the description it will use `$R_` as fixed prefix for RedisModule used data. `DATATYPE` use 1 Byte to determine the data type for value. Such as Raw, Hash and etc.
+As the description it will use `$R_` as fixed prefix for RedisModule used data. `INSTANCE_ID` use 8 Bytes (uint64) to determin the instance, `DATATYPE` use 1 Byte to determine the data type for value. Such as Raw, Hash and etc.
 
 Data Types may provided:
 
