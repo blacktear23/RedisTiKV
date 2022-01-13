@@ -48,6 +48,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             let ss = s.to_string();
             if ss == "replacesys" {
                 replace_system = true;
+                replace_system_with_cached_api = false;
                 return;
             }
             if ss == "replacesyscache" {
