@@ -19,7 +19,24 @@ lazy_static! {
 
 fn get_info_string() -> String {
     let info = format!(
-        "instance_id:{}\nrequests:{}\nget:{}\nset:{}\nmget:{}\nmset:{}\ndel:{}\nexists:{}\nscan:{}\nhget:{}\nhset:{}\nhgetall:{}\nhmset:{}\nhmget:{}\nhkeys:{}\nhvals:{}\nhexists:{}\nhdel:{}",
+        "instance_id:{}\n\
+        requests:{}\n\
+        get:{}\n\
+        set:{}\n\
+        mget:{}\n\
+        mset:{}\n\
+        del:{}\n\
+        exists:{}\n\
+        scan:{}\n\
+        hget:{}\n\
+        hset:{}\n\
+        hgetall:{}\n\
+        hmset:{}\n\
+        hmget:{}\n\
+        hkeys:{}\n\
+        hvals:{}\n\
+        hexists:{}\n\
+        hdel:{}",
         get_instance_id(),
         REQUEST_COUNTER.get(),
         REQUEST_CMD_COUNTER.with_label_values(&["get"]).get(),
