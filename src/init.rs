@@ -1,25 +1,20 @@
-use std::thread;
-use tokio::time::{sleep, Duration};
-use std::sync::{Arc, RwLock, Mutex};
-use redis_module::{Context, RedisString, ThreadSafeContext, Status };
-use tokio::runtime::{ Runtime, Handle };
 use crate::{
-    try_redis_command,
-    tidb::commands::{
-        do_async_mysql_connect,
-        do_async_mysql_close,
-    },
-    tikv::{
-        init::{
-            do_async_connect,
-            do_async_close,
-        },
-        tikv_get, tikv_put, tikv_batch_get, tikv_batch_put, tikv_del, tikv_exists,
-        tikv_ctl, tikv_cached_get, tikv_cached_put, tikv_cached_del,
-        set_instance_id, get_instance_id, prometheus_server, metrics::INSTANCE_ID_GAUGER,
-    },
     pd::pd_ctl,
+    tidb::commands::{do_async_mysql_close, do_async_mysql_connect},
+    tikv::{
+        get_instance_id,
+        init::{do_async_close, do_async_connect},
+        metrics::INSTANCE_ID_GAUGER,
+        prometheus_server, set_instance_id, tikv_batch_get, tikv_batch_put, tikv_cached_del,
+        tikv_cached_get, tikv_cached_put, tikv_ctl, tikv_del, tikv_exists, tikv_get, tikv_put,
+    },
+    try_redis_command,
 };
+use redis_module::{Context, RedisString, Status, ThreadSafeContext};
+use std::sync::{Arc, Mutex, RwLock};
+use std::thread;
+use tokio::runtime::{Handle, Runtime};
+use tokio::time::{sleep, Duration};
 
 lazy_static! {
     pub static ref GLOBAL_RT: Arc<RwLock<Option<Box<Handle>>>> = Arc::new(RwLock::new(None));
@@ -64,7 +59,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_pd_addrs {
                 pd_addrs = ss.clone();
                 start_pd_addrs = false;
-                return
+                return;
             }
             if ss == "autoconnmysql" {
                 auto_connect_mysql = true;
@@ -74,7 +69,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             if start_mysql_addrs {
                 mysql_url = ss.clone();
                 start_mysql_addrs = false;
-                return
+                return;
             }
             if ss == "binpath" {
                 start_bin_path = true;
@@ -87,7 +82,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             }
             if ss == "instanceid" {
                 start_instance_id = true;
-                return
+                return;
             }
             if start_instance_id {
                 let instance_id_str = ss.clone();
@@ -97,11 +92,11 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 };
                 INSTANCE_ID_GAUGER.set(get_instance_id() as i64);
                 start_instance_id = false;
-                return
+                return;
             }
             if ss == "enablepromhttp" {
                 enable_prometheus_http = true;
-                return
+                return;
             }
         });
     }
@@ -124,11 +119,13 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 let ret = do_async_connect(addrs).await;
                 match ret {
                     Ok(_) => {
-                        tctx.lock().log_notice(&format!("Connect to PD {} Success", pd_addrs));
-                    },
+                        tctx.lock()
+                            .log_notice(&format!("Connect to PD {} Success", pd_addrs));
+                    }
                     Err(err) => {
-                        tctx.lock().log_notice(&format!("Connect to PD {} error: {}", pd_addrs, err));
-                    },
+                        tctx.lock()
+                            .log_notice(&format!("Connect to PD {} error: {}", pd_addrs, err));
+                    }
                 }
             });
         }
@@ -139,11 +136,13 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 let ret = do_async_mysql_connect(&mysql_url.clone()).await;
                 match ret {
                     Ok(_) => {
-                        tctx.lock().log_notice(&format!("Connect to MySQL {} Success", mysql_url));
-                    },
+                        tctx.lock()
+                            .log_notice(&format!("Connect to MySQL {} Success", mysql_url));
+                    }
                     Err(err) => {
-                        tctx.lock().log_notice(&format!("Connect to MySQL {} error: {}", mysql_url, err));
-                    },
+                        tctx.lock()
+                            .log_notice(&format!("Connect to MySQL {} error: {}", mysql_url, err));
+                    }
                 }
             });
         }
@@ -179,10 +178,11 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 match prometheus_server().await {
                     Ok(()) => {
                         tctx.lock().log_notice("Prometheus Server Stopped");
-                    },
+                    }
                     Err(err) => {
-                        tctx.lock().log_notice(&format!("Prometheus Server Stopped with Error: {:}", err));
-                    },
+                        tctx.lock()
+                            .log_notice(&format!("Prometheus Server Stopped with Error: {:}", err));
+                    }
                 };
             });
         });

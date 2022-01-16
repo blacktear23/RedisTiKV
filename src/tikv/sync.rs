@@ -1,10 +1,10 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, BlockedClient, RedisValue, RedisString, ThreadSafeContext, KeyType};
 use crate::{
-    utils::{resp_int, redis_resp, get_client_id, tokio_spawn, redis_resp_with_ctx},
-    tikv::{
-        utils::*,
-        encoding::*,
-    },
+    tikv::{encoding::*, utils::*},
+    utils::{get_client_id, redis_resp, redis_resp_with_ctx, resp_int, tokio_spawn},
+};
+use redis_module::{
+    BlockedClient, Context, KeyType, NextArg, RedisError, RedisResult, RedisString, RedisValue,
+    ThreadSafeContext,
 };
 use tikv_client::{Error, Key, Value};
 
@@ -22,8 +22,12 @@ fn value_to_string(val: &Value) -> Result<String, Error> {
     }
 }
 
-pub async fn do_async_load(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, keys: Vec<&str>) -> Result<RedisValue, Error> {
-    let mut count:usize = 0;
+pub async fn do_async_load(
+    ctx: &ThreadSafeContext<BlockedClient>,
+    cid: u64,
+    keys: Vec<&str>,
+) -> Result<RedisValue, Error> {
+    let mut count: usize = 0;
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
     for i in 0..keys.len() {
@@ -43,8 +47,12 @@ pub async fn do_async_load(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, key
     Ok(resp_int(count as i64))
 }
 
-pub async fn do_async_sync(cid: u64, keys: Vec<String>, values: Vec<String>) -> Result<RedisValue, Error> {
-    let mut count:usize = 0;
+pub async fn do_async_sync(
+    cid: u64,
+    keys: Vec<String>,
+    values: Vec<String>,
+) -> Result<RedisValue, Error> {
+    let mut count: usize = 0;
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
     for i in 0..keys.len() {
@@ -57,8 +65,13 @@ pub async fn do_async_sync(cid: u64, keys: Vec<String>, values: Vec<String>) -> 
     Ok(resp_int(count as i64))
 }
 
-pub async fn do_async_scan_load(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, prefix: &str, limit: u64) -> Result<RedisValue, Error> {
-    let mut count:usize = 0;
+pub async fn do_async_scan_load(
+    ctx: &ThreadSafeContext<BlockedClient>,
+    cid: u64,
+    prefix: &str,
+    limit: u64,
+) -> Result<RedisValue, Error> {
+    let mut count: usize = 0;
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
     let range = encode_key(DataType::Raw, prefix)..encode_endkey(DataType::Raw);
@@ -76,12 +89,20 @@ pub async fn do_async_scan_load(ctx: &ThreadSafeContext<BlockedClient>, cid: u64
             return;
         }
         count += 1;
-        ctx.lock().call("SET", &[&key.unwrap(), &value.unwrap()]).unwrap();
+        ctx.lock()
+            .call("SET", &[&key.unwrap(), &value.unwrap()])
+            .unwrap();
     });
     Ok(resp_int(count as i64))
 }
 
-pub async fn do_async_scan_range_load(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, start_key: &str, end_key: &str, limit: u64) -> Result<RedisValue, Error> {
+pub async fn do_async_scan_range_load(
+    ctx: &ThreadSafeContext<BlockedClient>,
+    cid: u64,
+    start_key: &str,
+    end_key: &str,
+    limit: u64,
+) -> Result<RedisValue, Error> {
     let mut count: usize = 0;
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
@@ -100,7 +121,9 @@ pub async fn do_async_scan_range_load(ctx: &ThreadSafeContext<BlockedClient>, ci
             return;
         }
         count += 1;
-        ctx.lock().call("SET", &[&key.unwrap(), &value.unwrap()]).unwrap();
+        ctx.lock()
+            .call("SET", &[&key.unwrap(), &value.unwrap()])
+            .unwrap();
     });
     Ok(resp_int(count as i64))
 }
@@ -165,7 +188,7 @@ pub fn tikv_sync(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut values: Vec<String> = Vec::new();
     for _i in 0..args.len() {
         let key = args.next_arg()?;
-        let value = ctx.open_key(&key); 
+        let value = ctx.open_key(&key);
         if value.key_type() != KeyType::String {
             continue;
         }

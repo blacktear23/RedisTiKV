@@ -1,15 +1,15 @@
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisValue, RedisString};
 use crate::{
-    utils::{redis_resp, resp_int, resp_ok, get_client_id, tokio_spawn},
     tikv::{
-        utils::*,
         encoding::*,
-        string::{do_async_batch_put},
-        metrics::{REQUEST_COUNTER, REQUEST_CMD_COUNTER},
+        metrics::{REQUEST_CMD_COUNTER, REQUEST_COUNTER},
+        string::do_async_batch_put,
+        utils::*,
     },
+    utils::{get_client_id, redis_resp, resp_int, resp_ok, tokio_spawn},
 };
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 use std::collections::HashMap;
-use tikv_client::{KvPair, Error};
+use tikv_client::{Error, KvPair};
 
 pub async fn do_async_hget(cid: u64, key: &str, field: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
@@ -19,7 +19,12 @@ pub async fn do_async_hget(cid: u64, key: &str, field: &str) -> Result<RedisValu
     Ok(value.into())
 }
 
-pub async fn do_async_hput(cid: u64, key: &str, field: &str, val: &str) -> Result<RedisValue, Error> {
+pub async fn do_async_hput(
+    cid: u64,
+    key: &str,
+    field: &str,
+    val: &str,
+) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
     let ekey = encode_hash_key(key, field);
@@ -35,7 +40,10 @@ pub async fn do_async_hscan(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let result = txn.scan(range, 10200).await?;
     let mut values: Vec<Vec<u8>> = Vec::new();
     let _ = result.into_iter().for_each(|p| {
-        values.push(decode_hash_field(Into::<Vec<u8>>::into(p.key().to_owned()), key));
+        values.push(decode_hash_field(
+            Into::<Vec<u8>>::into(p.key().to_owned()),
+            key,
+        ));
         values.push(Into::<Vec<u8>>::into(p.value().to_owned()));
     });
     finish_txn(cid, txn, in_txn).await?;
@@ -184,13 +192,10 @@ pub fn tikv_hmset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut kvs: Vec<KvPair> = Vec::new();
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    for _i in 0..num_kvs/2 {
+    for _i in 0..num_kvs / 2 {
         let field = args.next_str()?;
         let value = args.next_str()?;
-        let kv = KvPair::from((
-            encode_hash_key(key, field).to_owned(),
-            value.to_owned()
-        ));
+        let kv = KvPair::from((encode_hash_key(key, field).to_owned(), value.to_owned()));
         kvs.push(kv);
     }
     let blocked_client = ctx.block_client();
@@ -286,5 +291,5 @@ pub fn tikv_hdel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         let res = do_async_batch_hdel(cid, fields).await;
         redis_resp(blocked_client, res);
     });
-    Ok(RedisValue::NoReply)    
+    Ok(RedisValue::NoReply)
 }

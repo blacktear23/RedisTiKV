@@ -1,11 +1,11 @@
-use std::future::Future;
-use redis_module::{RedisValue, Context, ThreadSafeContext, BlockedClient };
-pub use crate::init::{ GLOBAL_RT, GLOBAL_COUNTER, BIN_PATH };
+pub use crate::init::{BIN_PATH, GLOBAL_COUNTER, GLOBAL_RT};
 use redis_module::redisraw::bindings::RedisModule_GetClientId;
+use redis_module::{BlockedClient, Context, RedisValue, ThreadSafeContext};
+use std::future::Future;
 use tokio::{
-    time::Duration,
-    process::Command,
     io::{Error, ErrorKind},
+    process::Command,
+    time::Duration,
 };
 
 pub fn resp_ok() -> RedisValue {
@@ -27,33 +27,33 @@ pub async fn sleep(ms: u32) {
 // Respose for redis blocked client
 pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
 where
-    E: std::error::Error
+    E: std::error::Error,
 {
     let ctx = ThreadSafeContext::with_blocked_client(client);
     match result {
         Ok(data) => {
             ctx.lock().reply(Ok(data.into()));
-        },
+        }
         Err(err) => {
             let err_msg = format!("{}", err);
             ctx.lock().reply_error_string(&err_msg);
-        },
+        }
     };
 }
 
 // Respose for redis blocked client
 pub fn redis_resp_with_ctx<E>(ctx: &ThreadSafeContext<BlockedClient>, result: Result<RedisValue, E>)
 where
-    E: std::error::Error
+    E: std::error::Error,
 {
     match result {
         Ok(data) => {
             ctx.lock().reply(Ok(data.into()));
-        },
+        }
         Err(err) => {
             let err_msg = format!("{}", err);
             ctx.lock().reply_error_string(&err_msg);
-        },
+        }
     };
 }
 
@@ -69,16 +69,14 @@ where
 }
 
 pub fn get_client_id(ctx: &Context) -> u64 {
-    unsafe{ RedisModule_GetClientId.unwrap()(ctx.get_raw()) }
+    unsafe { RedisModule_GetClientId.unwrap()(ctx.get_raw()) }
 }
 
 pub async fn proc_exec(command: String, args: Vec<String>) -> Result<String, Error> {
     let output = Command::new(command).args(&args).output().await?;
     match String::from_utf8(output.stdout) {
         Ok(stdout) => Ok(stdout),
-        Err(err) => {
-            Err(Error::new(ErrorKind::Other, err.to_string()))
-        }
+        Err(err) => Err(Error::new(ErrorKind::Other, err.to_string())),
     }
 }
 

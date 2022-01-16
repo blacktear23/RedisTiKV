@@ -1,12 +1,10 @@
-use redis_module::{Context, RedisResult, RedisValue, RedisString};
-use crate::{
-    utils::{redis_resp, tokio_spawn, get_binary_path, proc_exec},
-};
+use crate::utils::{get_binary_path, proc_exec, redis_resp, tokio_spawn};
+use redis_module::{Context, RedisResult, RedisString, RedisValue};
 use tokio::io::{Error, ErrorKind};
 
 fn has_bin_path() -> Result<(), Error> {
     if get_binary_path() == "" {
-        return Err(Error::new(ErrorKind::Other, "Binary path not set"))
+        return Err(Error::new(ErrorKind::Other, "Binary path not set"));
     }
     Ok(())
 }

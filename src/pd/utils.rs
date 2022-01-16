@@ -1,15 +1,8 @@
-use reqwest::{ Client, Error as ReqError};
-use std::{
-    error,
-    fmt,
-    fmt::Display,
-};
-use redis_module::RedisValue;
 use crate::tikv::PD_ADDRS;
-use serde_json::{
-    to_string_pretty,
-    Value,
-};
+use redis_module::RedisValue;
+use reqwest::{Client, Error as ReqError};
+use serde_json::{to_string_pretty, Value};
+use std::{error, fmt, fmt::Display};
 
 #[derive(Debug)]
 pub enum Error {
@@ -93,8 +86,12 @@ pub fn format_json(json_data: String) -> Result<RedisValue, Error> {
             return Err(Error::from(err.to_string()));
         }
     };
-    match to_string_pretty(&json_val){
-        Ok(val) => Ok(val.replace("\"", "'").split("\n").collect::<Vec<&str>>().into()),
+    match to_string_pretty(&json_val) {
+        Ok(val) => Ok(val
+            .replace("\"", "'")
+            .split("\n")
+            .collect::<Vec<&str>>()
+            .into()),
         Err(err) => Err(Error::from(err.to_string())),
     }
 }

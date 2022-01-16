@@ -1,20 +1,23 @@
-use prometheus::{IntCounter, Encoder, TextEncoder, IntCounterVec, IntGauge};
-use redis_module::{Context, RedisResult, RedisValue, RedisString};
 use crate::get_instance_id;
 use hyper::{
     header::CONTENT_TYPE,
     service::{make_service_fn, service_fn},
     Body, Request, Response, Server,
 };
+use prometheus::{Encoder, IntCounter, IntCounterVec, IntGauge, TextEncoder};
+use redis_module::{Context, RedisResult, RedisString, RedisValue};
 
 lazy_static! {
-    pub static ref INSTANCE_ID_GAUGER: IntGauge = 
+    pub static ref INSTANCE_ID_GAUGER: IntGauge =
         register_int_gauge!("redistikv_instance_id", "Instance ID").unwrap();
     pub static ref REQUEST_COUNTER: IntCounter =
         register_int_counter!("redistikv_requests", "Request counter").unwrap();
-    pub static ref REQUEST_CMD_COUNTER: IntCounterVec = 
-        register_int_counter_vec!("redistikv_command_requests", "Request command counter",
-            &["cmd"]).unwrap();
+    pub static ref REQUEST_CMD_COUNTER: IntCounterVec = register_int_counter_vec!(
+        "redistikv_command_requests",
+        "Request command counter",
+        &["cmd"]
+    )
+    .unwrap();
 }
 
 fn get_info_string() -> String {
@@ -60,7 +63,7 @@ fn get_info_string() -> String {
 }
 
 pub fn tikv_status(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let info = get_info_string(); 
+    let info = get_info_string();
     Ok(RedisValue::SimpleString(info))
 }
 
@@ -84,7 +87,7 @@ pub async fn prometheus_server() -> Result<(), hyper::Error> {
     println!("Listening on http://{}", addr);
 
     // gather all metrics to hold the data
-    let _ = get_info_string(); 
+    let _ = get_info_string();
     let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {
         Ok::<_, hyper::Error>(service_fn(serve_req))
     }));

@@ -1,14 +1,9 @@
 pub mod commands;
-pub mod utils;
 pub mod procexec;
+pub mod utils;
 
 // Export commands
 pub use crate::pd::{
-    commands::{
-        pd_stores, pd_members, pd_regions,
-        pd_apiget, pd_apidelete, pd_apipost,
-    },
-    procexec::{
-        pd_ctl,
-    },
+    commands::{pd_apidelete, pd_apiget, pd_apipost, pd_members, pd_regions, pd_stores},
+    procexec::pd_ctl,
 };

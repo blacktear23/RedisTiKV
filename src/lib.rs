@@ -6,22 +6,22 @@ extern crate lazy_static;
 extern crate prometheus;
 
 extern crate etcd_client;
-extern crate tokio;
-extern crate reqwest;
-extern crate tikv_client;
-extern crate serde_json;
 extern crate hyper;
+extern crate reqwest;
+extern crate serde_json;
+extern crate tikv_client;
+extern crate tokio;
 
 mod init;
-mod utils;
-mod tikv;
 mod pd;
 mod tidb;
+mod tikv;
+mod utils;
 
-use init::{ tikv_init, tikv_deinit };
-use crate::tikv::*;
 use crate::pd::*;
 use crate::tidb::*;
+use crate::tikv::*;
+use init::{tikv_deinit, tikv_init};
 
 // register functions
 redis_module! {

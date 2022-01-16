@@ -1,9 +1,9 @@
 use crate::{
-    utils::{redis_resp, resp_ok, tokio_spawn, resp_sstr},
     tikv::{PD_ADDRS, TIKV_TNX_CONN_POOL},
+    utils::{redis_resp, resp_ok, resp_sstr, tokio_spawn},
 };
+use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
 use tikv_client::Error;
-use redis_module::{Context, RedisError, RedisResult, RedisValue, RedisString};
 
 pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
     PD_ADDRS.write().unwrap().replace(addrs.clone());
@@ -26,7 +26,7 @@ pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let guard = PD_ADDRS.read().unwrap();
     if guard.as_ref().is_some() {
-        return Ok(resp_sstr("Already Connected"))
+        return Ok(resp_sstr("Already Connected"));
     }
     let mut addrs: Vec<String> = Vec::new();
     if args.len() == 1 {

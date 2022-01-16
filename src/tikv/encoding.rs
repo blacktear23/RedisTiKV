@@ -17,7 +17,11 @@ fn get_prefix(tp: DataType) -> String {
         DataType::Set => "S",
     };
     let uid = get_instance_id().to_be_bytes();
-    format!("$R_{}_{}", String::from_utf8(uid.to_vec()).unwrap(), dt_prefix)
+    format!(
+        "$R_{}_{}",
+        String::from_utf8(uid.to_vec()).unwrap(),
+        dt_prefix
+    )
 }
 
 pub fn encode_key(tp: DataType, key: &str) -> String {

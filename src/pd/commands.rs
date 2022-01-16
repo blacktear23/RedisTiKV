@@ -1,8 +1,8 @@
 use crate::{
-    utils::{redis_resp, tokio_spawn},
     pd::utils::*,
+    utils::{redis_resp, tokio_spawn},
 };
-use redis_module::{RedisError, Context, NextArg, RedisResult, RedisValue, RedisString };
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 
 pub fn pd_members(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     let pd_addr = get_pd_addr()?;

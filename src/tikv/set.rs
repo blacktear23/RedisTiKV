@@ -16,7 +16,7 @@ pub async fn do_async_sadd(cid: u64, key: &str, members: Vec<String>) -> Result<
             None => {
                 txn.put(k, crate::encoding::EMPTY_VALUE).await?;
                 added_num += 1;
-            },
+            }
             _ => (),
         }
     }
@@ -41,7 +41,11 @@ pub async fn do_async_smembers(cid: u64, key: &str) -> Result<RedisValue, Error>
     let range = encode_set_key_prefix(key)..encode_set_key_prefix_end(key);
     let result = txn.scan(range, 10200).await?;
     let values: Vec<_> = result
-        .map(|p| Vec::from(decode_set_member_from_key(Into::<Vec<u8>>::into(p.key().to_owned()))))
+        .map(|p| {
+            Vec::from(decode_set_member_from_key(Into::<Vec<u8>>::into(
+                p.key().to_owned(),
+            )))
+        })
         .collect();
 
     finish_txn(cid, txn, in_txn).await?;

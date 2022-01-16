@@ -1,7 +1,10 @@
-use redis_module::{ RedisValue };
-use tikv_client::{Error, KvPair, TransactionClient, Transaction, TransactionOptions, CheckLevel, RetryOptions, Backoff};
-use crate::tikv::{PD_ADDRS, TIKV_TRANSACTIONS, TIKV_TNX_CONN_POOL};
+use crate::tikv::{PD_ADDRS, TIKV_TNX_CONN_POOL, TIKV_TRANSACTIONS};
 use crate::utils::sleep;
+use redis_module::RedisValue;
+use tikv_client::{
+    Backoff, CheckLevel, Error, KvPair, RetryOptions, Transaction, TransactionClient,
+    TransactionOptions,
+};
 
 pub enum TiKVValue {
     Null,
@@ -89,7 +92,9 @@ pub async fn get_transaction(cid: u64) -> Result<Transaction, Error> {
 pub fn get_pd_addrs() -> Result<Vec<String>, Error> {
     let guard = PD_ADDRS.read().unwrap();
     if guard.is_none() {
-        return Err(tikv_client::Error::StringError(String::from("TiKV Not connected")))
+        return Err(tikv_client::Error::StringError(String::from(
+            "TiKV Not connected",
+        )));
     }
     Ok(guard.as_ref().unwrap().clone())
 }
@@ -100,15 +105,15 @@ pub async fn wrap_get(txn: &mut Transaction, key: String) -> Result<Option<Vec<u
         match txn.get(key.clone()).await {
             Ok(val) => {
                 return Ok(val);
-            },
+            }
             Err(err) => {
                 if let Error::RegionError(ref _rerr) = err {
                     last_err.replace(err);
-                    sleep(std::cmp::min(2+i, 500)).await;
+                    sleep(std::cmp::min(2 + i, 500)).await;
                     continue;
                 }
                 return Err(err);
-            },
+            }
         }
     }
     match last_err {
@@ -117,14 +122,17 @@ pub async fn wrap_get(txn: &mut Transaction, key: String) -> Result<Option<Vec<u
     }
 }
 
-pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<Vec<KvPair>, Error> {
+pub async fn wrap_batch_get(
+    txn: &mut Transaction,
+    keys: Vec<String>,
+) -> Result<Vec<KvPair>, Error> {
     let mut ret: Vec<KvPair> = Vec::new();
     for i in 0..keys.len() {
         let key = keys[i].to_owned();
         let val = wrap_get(txn, key.clone()).await?;
         // let val = txn.get(key.clone()).await?;
         match val {
-            None => {},
+            None => {}
             Some(v) => {
                 ret.push(KvPair::new(key, v));
             }
@@ -139,7 +147,7 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
         match txn.put(key.to_owned(), value.to_owned()).await {
             Ok(_) => {
                 return Ok(());
-            },
+            }
             Err(err) => {
                 if let Error::KeyError(ref kerr) = err {
                     if kerr.retryable != "" {
