@@ -17,8 +17,9 @@ lazy_static! {
             &["cmd"]).unwrap();
 }
 
-pub fn tikv_status(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let info = format!("instance_id:{}\nrequests:{}\nget:{}\nset:{}\nmget:{}\nmset:{}\ndel:{}\nexists:{}\nscan:{}",
+fn get_info_string() -> String {
+    let info = format!(
+        "instance_id:{}\nrequests:{}\nget:{}\nset:{}\nmget:{}\nmset:{}\ndel:{}\nexists:{}\nscan:{}\nhget:{}\nhset:{}\nhgetall:{}\nhmset:{}\nhmget:{}\nhkeys:{}\nhvals:{}\nhexists:{}\nhdel:{}",
         get_instance_id(),
         REQUEST_COUNTER.get(),
         REQUEST_CMD_COUNTER.with_label_values(&["get"]).get(),
@@ -28,7 +29,21 @@ pub fn tikv_status(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
         REQUEST_CMD_COUNTER.with_label_values(&["del"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["exists"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["scan"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hget"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hset"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hgetall"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hmset"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hmget"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hkeys"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hvals"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hexists"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["hdel"]).get(),
     );
+    return info;
+}
+
+pub fn tikv_status(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
+    let info = get_info_string(); 
     Ok(RedisValue::SimpleString(info))
 }
 
@@ -52,18 +67,7 @@ pub async fn prometheus_server() -> Result<(), hyper::Error> {
     println!("Listening on http://{}", addr);
 
     // gather all metrics to hold the data
-    let _ = format!("instance_id:{}\nrequests:{}\nget:{}\nset:{}\nmget:{}\nmset:{}\ndel:{}\nexists:{}\nscan:{}",
-        get_instance_id(),
-        REQUEST_COUNTER.get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["get"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["set"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["mget"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["mset"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["del"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["exists"]).get(),
-        REQUEST_CMD_COUNTER.with_label_values(&["scan"]).get(),
-    );
-
+    let _ = get_info_string(); 
     let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {
         Ok::<_, hyper::Error>(service_fn(serve_req))
     }));

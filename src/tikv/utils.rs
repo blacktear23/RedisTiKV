@@ -94,11 +94,35 @@ pub fn get_pd_addrs() -> Result<Vec<String>, Error> {
     Ok(guard.as_ref().unwrap().clone())
 }
 
+pub async fn wrap_get(txn: &mut Transaction, key: String) -> Result<Option<Vec<u8>>, Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..2000 {
+        match txn.get(key.clone()).await {
+            Ok(val) => {
+                return Ok(val);
+            },
+            Err(err) => {
+                if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2+i, 500)).await;
+                    continue;
+                }
+                return Err(err);
+            },
+        }
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(None),
+    }
+}
+
 pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<Vec<KvPair>, Error> {
     let mut ret: Vec<KvPair> = Vec::new();
     for i in 0..keys.len() {
         let key = keys[i].to_owned();
-        let val = txn.get(key.clone()).await?;
+        let val = wrap_get(txn, key.clone()).await?;
+        // let val = txn.get(key.clone()).await?;
         match val {
             None => {},
             Some(v) => {

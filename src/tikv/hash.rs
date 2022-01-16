@@ -5,6 +5,7 @@ use crate::{
         utils::*,
         encoding::*,
         string::{do_async_batch_put},
+        metrics::{REQUEST_COUNTER, REQUEST_CMD_COUNTER},
     },
 };
 use std::collections::HashMap;
@@ -116,6 +117,8 @@ pub async fn do_async_hexists(cid: u64, key: &str, field: &str) -> Result<RedisV
 }
 
 pub fn tikv_hset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hset"]).inc();
     if args.len() < 4 {
         return Err(RedisError::WrongArity);
     }
@@ -133,6 +136,8 @@ pub fn tikv_hset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hget(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hget"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -149,6 +154,8 @@ pub fn tikv_hget(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hget_all(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hgetall"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -164,6 +171,8 @@ pub fn tikv_hget_all(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hmset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hmset"]).inc();
     if args.len() < 4 {
         return Err(RedisError::WrongArity);
     }
@@ -193,6 +202,8 @@ pub fn tikv_hmset(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hmget(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hmget"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -209,6 +220,8 @@ pub fn tikv_hmget(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hkeys(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hkeys"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -224,6 +237,8 @@ pub fn tikv_hkeys(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hvals(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hvals"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -239,6 +254,8 @@ pub fn tikv_hvals(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hexists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hexists"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -255,6 +272,8 @@ pub fn tikv_hexists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_hdel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["hdel"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }

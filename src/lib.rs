@@ -10,7 +10,6 @@ extern crate tokio;
 extern crate reqwest;
 extern crate tikv_client;
 extern crate serde_json;
-extern crate quick_js;
 extern crate hyper;
 
 mod init;
@@ -18,13 +17,11 @@ mod utils;
 mod tikv;
 mod pd;
 mod tidb;
-mod js;
 
 use init::{ tikv_init, tikv_deinit };
 use crate::tikv::*;
 use crate::pd::*;
 use crate::tidb::*;
-use crate::js::*;
 
 // register functions
 redis_module! {
@@ -100,7 +97,5 @@ redis_module! {
         ["tidb.commit", mysql_commit, "", 0, 0, 0],
         ["tidb.rollback", mysql_rollback, "", 0, 0, 0],
         ["tidb.api", tidb_api, "", 0, 0, 0],
-        // JS commands
-        ["js.eval", js_eval, "", 0, 0, 0],
     ],
 }

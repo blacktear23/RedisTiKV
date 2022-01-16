@@ -13,7 +13,8 @@ use tikv_client::{KvPair, Error, Key, Value};
 pub async fn do_async_get(cid: u64, key: &str) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
-    let value = txn.get(encode_key(DataType::Raw, key)).await?;
+    let value = wrap_get(&mut txn, encode_key(DataType::Raw, key)).await?;
+    // let value = txn.get(encode_key(DataType::Raw, key)).await?;
     finish_txn(cid, txn, in_txn).await?;
     Ok(value.into())
 }
@@ -250,7 +251,8 @@ pub fn tikv_exists(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 pub async fn do_async_cached_get(ctx: &ThreadSafeContext<BlockedClient>, cid: u64, key: String) -> Result<RedisValue, Error> {
     let in_txn = has_txn(cid);
     let mut txn = get_transaction(cid).await?;
-    let value = txn.get(encode_key(DataType::Raw, &key)).await?;
+    let value = wrap_get(&mut txn, encode_key(DataType::Raw, &key)).await?;
+    // let value = txn.get(encode_key(DataType::Raw, &key)).await?;
     if value.is_none() {
         finish_txn(cid, txn, in_txn).await?;
         return Ok(RedisValue::Null)
