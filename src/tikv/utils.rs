@@ -111,7 +111,7 @@ pub async fn wrap_batch_get(txn: &mut Transaction, keys: Vec<String>) -> Result<
 
 pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
     let mut last_err: Option<Error> = None;
-    for i in 0..1000 {
+    for i in 0..2000 {
         match txn.put(key.to_owned(), value.to_owned()).await {
             Ok(_) => {
                 return Ok(());
@@ -121,9 +121,14 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
                     if kerr.retryable != "" {
                         // do retry
                         last_err.replace(err);
-                        sleep(std::cmp::min(2 * i, 500)).await;
+                        sleep(std::cmp::min(2 + i, 500)).await;
                         continue;
                     }
+                }
+                if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
                 }
                 // Cannot retry
                 return Err(err);
