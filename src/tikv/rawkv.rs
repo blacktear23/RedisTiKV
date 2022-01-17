@@ -1,11 +1,11 @@
 use crate::{
     tikv::{encoding::*, metrics::*, TIKV_RAW_CLIENT},
-    utils::{redis_resp, resp_ok, tokio_spawn},
+    utils::{redis_resp, resp_ok, tokio_spawn, sleep},
 };
 use redis_module::{
     Context, NextArg, RedisError, RedisResult, RedisString, RedisValue,
 };
-use tikv_client::{Error, RawClient};
+use tikv_client::{Error, RawClient, Value};
 
 fn get_client() -> Result<Box<RawClient>, Error> {
     let guard = TIKV_RAW_CLIENT.read().unwrap();
@@ -22,17 +22,63 @@ pub async fn do_async_rawkv_batch_del(keys: Vec<String>) -> Result<RedisValue, E
     Ok(resp_ok())
 }
 
+async fn wrap_rawkv_get(client: Box<RawClient>, key: String) -> Result<Option<Value>, Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..2000 {
+        match client.get(key.clone()).await {
+            Ok(val) => {
+                return Ok(val);
+            }
+            Err(err) => {
+                if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
+                }
+                return Err(err);
+            }
+        } 
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(None),
+    }
+}
+
+async fn wrap_rawkv_put(client: Box<RawClient>, key: String, val: &str) -> Result<(), Error> {
+    let mut last_err: Option<Error> = None;
+    for i in 0..2000 {
+        match client.put(key.clone(), val.to_owned()).await {
+            Ok(_) => {
+                return Ok(());
+            }
+            Err(err) => {
+                if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
+                }
+                return Err(err);
+            }
+        } 
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(()),
+    }
+}
+
 pub async fn do_async_rawkv_get(key: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
     let ekey = encode_rawkv_key(DataType::Raw, key);
-    let val = client.get(ekey).await?;
+    let val = wrap_rawkv_get(client, ekey).await?;
     Ok(val.into())
 }
 
 pub async fn do_async_rawkv_put(key: &str, val: &str) -> Result<RedisValue, Error> {
     let client = get_client()?;
     let ekey = encode_rawkv_key(DataType::Raw, key);
-    let _ = client.put(ekey, val.to_owned()).await?;
+    let _ = wrap_rawkv_put(client, ekey, val).await?;
     Ok(resp_ok())
 }
 
