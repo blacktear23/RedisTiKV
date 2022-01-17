@@ -24,6 +24,42 @@ fn get_prefix(tp: DataType) -> String {
     )
 }
 
+fn get_rawkv_prefix(tp: DataType) -> String {
+    let dt_prefix = match tp {
+        DataType::Raw => "R",
+        DataType::Hash => "H",
+        DataType::List => "L",
+        DataType::Set => "S",
+    };
+    let uid = get_instance_id().to_be_bytes();
+    format!(
+        "x$R_{}_{}",
+        String::from_utf8(uid.to_vec()).unwrap(),
+        dt_prefix
+    )
+}
+
+pub fn encode_rawkv_key(tp: DataType, key: &str) -> String {
+    let prefix = get_rawkv_prefix(tp);
+    format!("{}_{}", prefix, key)
+}
+
+pub fn decode_rawkv_key(key: Vec<u8>) -> Vec<u8> {
+    key.clone().drain(15..).collect()
+}
+
+pub fn encode_rawkv_keys(tp: DataType, keys: Vec<String>) -> Vec<String> {
+    let prefix = get_rawkv_prefix(tp);
+    keys.into_iter()
+        .map(|val| format!("{}_{}", prefix, val))
+        .collect()
+}
+
+pub fn encode_rawkv_endkey(tp: DataType) -> String {
+    let prefix = get_rawkv_prefix(tp);
+    format!("{}`", prefix)
+}
+
 pub fn encode_key(tp: DataType, key: &str) -> String {
     let prefix = get_prefix(tp);
     format!("{}_{}", prefix, key)

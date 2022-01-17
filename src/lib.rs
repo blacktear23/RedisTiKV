@@ -81,6 +81,12 @@ redis_module! {
         ["tikv.load", tikv_load, "", 0, 0, 0],
         ["tikv.scanload", tikv_scan_load, "", 0, 0, 0],
         ["tikv.sync", tikv_sync, "", 0, 0, 0],
+        // TiKV rawkv
+        ["tikv.rget", tikv_rawkv_get, "", 0, 0, 0],
+        ["tikv.rput", tikv_rawkv_put, "", 0, 0, 0],
+        ["tikv.rset", tikv_rawkv_put, "", 0, 0, 0],
+        ["tikv.rdel", tikv_rawkv_del, "", 0, 0, 0],
+        ["tikv.rscan", tikv_rawkv_scan, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.apipost", pd_apipost, "", 0, 0, 0],

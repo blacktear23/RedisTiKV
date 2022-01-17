@@ -1,12 +1,18 @@
 use crate::{
-    tikv::{PD_ADDRS, TIKV_TNX_CONN_POOL},
+    tikv::{PD_ADDRS, TIKV_RAW_CLIENT, TIKV_TNX_CONN_POOL},
     utils::{redis_resp, resp_ok, resp_sstr, tokio_spawn},
 };
 use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
-use tikv_client::Error;
+use tikv_client::{Error, RawClient};
 
 pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
     PD_ADDRS.write().unwrap().replace(addrs.clone());
+    Ok(resp_ok())
+}
+
+pub async fn do_async_rawkv_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
+    let client = RawClient::new(addrs).await?;
+    TIKV_RAW_CLIENT.write().unwrap().replace(Box::new(client));
     Ok(resp_ok())
 }
 

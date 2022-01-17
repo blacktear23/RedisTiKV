@@ -1,6 +1,6 @@
 use std::collections::{HashMap, LinkedList};
 use std::sync::{Arc, Mutex, RwLock};
-use tikv_client::{Transaction, TransactionClient};
+use tikv_client::{RawClient, Transaction, TransactionClient};
 
 pub mod encoding;
 pub mod hash;
@@ -8,6 +8,7 @@ pub mod init;
 pub mod list;
 pub mod metrics;
 pub mod procexec;
+pub mod rawkv;
 pub mod set;
 pub mod string;
 pub mod sync;
@@ -20,6 +21,8 @@ lazy_static! {
         Arc::new(RwLock::new(HashMap::new()));
     pub static ref TIKV_TNX_CONN_POOL: Arc<Mutex<LinkedList<TransactionClient>>> =
         Arc::new(Mutex::new(LinkedList::new()));
+    pub static ref TIKV_RAW_CLIENT: Arc<RwLock<Option<Box<RawClient>>>> =
+        Arc::new(RwLock::new(None));
 }
 
 pub static mut INSTANCE_ID: u64 = 0;
@@ -47,6 +50,7 @@ pub use crate::tikv::{
     },
     metrics::{prometheus_server, tikv_status},
     procexec::tikv_ctl,
+    rawkv::{tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, tikv_rawkv_scan},
     set::{tikv_sadd, tikv_scard, tikv_smembers},
     string::{
         tikv_batch_get, tikv_batch_put, tikv_cached_del, tikv_cached_get, tikv_cached_put,

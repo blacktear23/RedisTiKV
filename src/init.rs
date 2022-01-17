@@ -3,10 +3,11 @@ use crate::{
     tidb::commands::{do_async_mysql_close, do_async_mysql_connect},
     tikv::{
         get_instance_id,
-        init::{do_async_close, do_async_connect},
+        init::{do_async_close, do_async_connect, do_async_rawkv_connect},
         metrics::INSTANCE_ID_GAUGER,
         prometheus_server, set_instance_id, tikv_batch_get, tikv_batch_put, tikv_cached_del,
         tikv_cached_get, tikv_cached_put, tikv_ctl, tikv_del, tikv_exists, tikv_get, tikv_put,
+        tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put,
     },
     try_redis_command,
 };
@@ -27,6 +28,7 @@ lazy_static! {
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut replace_system: bool = false;
     let mut replace_system_with_cached_api: bool = false;
+    let mut replace_system_with_rawkv: bool = false;
     let mut auto_connect: bool = false;
     let mut auto_connect_mysql: bool = false;
     let mut pd_addrs: String = String::from("");
@@ -43,12 +45,20 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             let ss = s.to_string();
             if ss == "replacesys" {
                 replace_system = true;
+                replace_system_with_rawkv = false;
                 replace_system_with_cached_api = false;
                 return;
             }
             if ss == "replacesyscache" {
                 replace_system = true;
+                replace_system_with_rawkv = false;
                 replace_system_with_cached_api = true;
+                return;
+            }
+            if ss == "replacesysrawkv" {
+                replace_system = true;
+                replace_system_with_rawkv = true;
+                replace_system_with_cached_api = false;
                 return;
             }
             if ss == "autoconn" {
@@ -116,7 +126,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 pd_addrs.split(",").for_each(|s| {
                     addrs.push(s.to_string());
                 });
-                let ret = do_async_connect(addrs).await;
+                let ret = do_async_connect(addrs.clone()).await;
                 match ret {
                     Ok(_) => {
                         tctx.lock()
@@ -125,6 +135,19 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                     Err(err) => {
                         tctx.lock()
                             .log_notice(&format!("Connect to PD {} error: {}", pd_addrs, err));
+                    }
+                }
+                let ret2 = do_async_rawkv_connect(addrs).await;
+                match ret2 {
+                    Ok(_) => {
+                        tctx.lock()
+                            .log_notice(&format!("Raw Client Connect to PD {} Success", pd_addrs));
+                    }
+                    Err(err) => {
+                        tctx.lock().log_notice(&format!(
+                            "Raw Client Connect to PD {} error: {}",
+                            pd_addrs, err
+                        ));
                     }
                 }
             });
@@ -194,6 +217,10 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             try_redis_command!(ctx, "get", tikv_cached_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_cached_put, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_cached_del, "", 0, 0, 0);
+        } else if replace_system_with_rawkv {
+            try_redis_command!(ctx, "get", tikv_rawkv_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "set", tikv_rawkv_put, "", 0, 0, 0);
+            try_redis_command!(ctx, "del", tikv_rawkv_del, "", 0, 0, 0);
         } else {
             try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);
