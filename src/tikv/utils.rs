@@ -44,7 +44,7 @@ pub async fn get_txn_client() -> Result<TransactionClient, Error> {
         return Ok(front.unwrap());
     }
     let pd_addrs = get_pd_addrs()?;
-    let conn = TransactionClient::new(pd_addrs).await?;
+    let conn = TransactionClient::new(pd_addrs, None).await?;
     return Ok(conn);
 }
 
@@ -149,6 +149,16 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
                 return Ok(());
             }
             Err(err) => {
+                if let Error::MultipleKeyErrors(ref mkerr) = err {
+                    if let Error::KeyError(ref kerr) = mkerr[0] {
+                        if kerr.retryable != "" {
+                            // do retry
+                            last_err.replace(err);
+                            sleep(std::cmp::min(2 + i, 500)).await;
+                            continue;
+                        }
+                    }    
+                }
                 if let Error::KeyError(ref kerr) = err {
                     if kerr.retryable != "" {
                         // do retry

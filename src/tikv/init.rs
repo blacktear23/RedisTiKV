@@ -11,8 +11,11 @@ pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
 }
 
 pub async fn do_async_rawkv_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
-    let client = RawClient::new(addrs).await?;
-    TIKV_RAW_CLIENT.write().unwrap().replace(Box::new(client));
+    let client = RawClient::new(addrs, None).await?;
+    // TIKV_RAW_CLIENT.write().unwrap().replace(Box::new(client));
+    unsafe {
+        TIKV_RAW_CLIENT.replace(client);
+    };
     Ok(resp_ok())
 }
 

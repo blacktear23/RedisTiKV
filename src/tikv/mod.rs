@@ -21,9 +21,11 @@ lazy_static! {
         Arc::new(RwLock::new(HashMap::new()));
     pub static ref TIKV_TNX_CONN_POOL: Arc<Mutex<LinkedList<TransactionClient>>> =
         Arc::new(Mutex::new(LinkedList::new()));
-    pub static ref TIKV_RAW_CLIENT: Arc<RwLock<Option<Box<RawClient>>>> =
-        Arc::new(RwLock::new(None));
+    // pub static ref TIKV_RAW_CLIENT: Arc<RwLock<Option<Box<RawClient>>>> =
+    //    Arc::new(RwLock::new(None));
 }
+
+pub static mut TIKV_RAW_CLIENT: Option<RawClient> = None;
 
 pub static mut INSTANCE_ID: u64 = 0;
 
