@@ -70,7 +70,7 @@ pub async fn finish_txn(cid: u64, txn: Transaction, in_txn: bool) -> Result<u8, 
 pub fn get_transaction_option() -> TransactionOptions {
     let opts = TransactionOptions::new_pessimistic();
     let mut retry_opts = RetryOptions::default_pessimistic();
-    retry_opts.lock_backoff = Backoff::full_jitter_backoff(2, 500, 10);
+    retry_opts.lock_backoff = Backoff::full_jitter_backoff(2, 500, 2000);
     opts.drop_check(CheckLevel::Warn)
         .use_async_commit()
         .try_one_pc()
@@ -144,8 +144,9 @@ pub async fn wrap_batch_get(
 pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(), Error> {
     let mut last_err: Option<Error> = None;
     for i in 0..2000 {
-        match txn.put(key.to_owned(), value.to_owned()).await {
+        match txn.lock_keys(vec![key.to_owned().clone()]).await {
             Ok(_) => {
+                txn.put(key.to_owned(), value.to_owned()).await?;
                 return Ok(());
             }
             Err(err) => {
@@ -175,7 +176,7 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
                 // Cannot retry
                 return Err(err);
             }
-        }
+        };
     }
     match last_err {
         Some(err) => Err(err),
