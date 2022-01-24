@@ -87,6 +87,7 @@ redis_module! {
         ["tikv.rset", tikv_rawkv_put, "", 0, 0, 0],
         ["tikv.rdel", tikv_rawkv_del, "", 0, 0, 0],
         ["tikv.rscan", tikv_rawkv_scan, "", 0, 0, 0],
+        ["tikv.rsetnx", tikv_rawkv_setnx, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.apipost", pd_apipost, "", 0, 0, 0],

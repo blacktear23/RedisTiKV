@@ -70,6 +70,40 @@ async fn wrap_rawkv_put(key: String, val: &str) -> Result<(), Error> {
     }
 }
 
+async fn wrap_rawkv_cas(key: String, prev_val: Option<Value>, val: &str) -> Result<u64, Error> {
+    let client = unsafe {TIKV_RAW_CLIENT.as_ref().unwrap()};
+    let mut last_err: Option<Error> = None;
+    for i in 0..2000 {
+        match client.with_atomic_for_cas().compare_and_swap(key.clone(), prev_val.clone(), val.to_owned()).await {
+            Ok((_, swapped)) => {
+                if swapped {
+                    return Ok(1);
+                } else {
+                    return Ok(0);
+                }
+            }
+            Err(err) => {
+                if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
+                }
+                return Err(err);
+            }
+        }
+    }
+    match last_err {
+        Some(err) => Err(err),
+        None => Ok(0),
+    }
+}
+
+pub async fn do_async_rawkv_put_not_exists(key: &str, value: &str) -> Result<RedisValue, Error> {
+    let ekey = encode_rawkv_key(DataType::Raw, key);
+    let val = wrap_rawkv_cas(ekey, None.into(), value).await?;
+    Ok(RedisValue::Integer(val as i64))
+}
+
 pub async fn do_async_rawkv_get(key: &str) -> Result<RedisValue, Error> {
     let ekey = encode_rawkv_key(DataType::Raw, key);
     let val = wrap_rawkv_get(ekey).await?;
@@ -193,6 +227,23 @@ pub fn tikv_rawkv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
             let res = do_async_rawkv_scan_range(start_key, end_key, limit).await;
             redis_resp(blocked_client, res);
         }
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_rawkv_setnx(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["scan"]).inc();
+    if args.len() < 3 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let value = args.next_str()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_rawkv_put_not_exists(key, value).await;
+        redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)
 }
