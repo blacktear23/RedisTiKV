@@ -233,7 +233,7 @@ pub fn tikv_rawkv_scan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 
 pub fn tikv_rawkv_setnx(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     REQUEST_COUNTER.inc();
-    REQUEST_CMD_COUNTER.with_label_values(&["scan"]).inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["setnx"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }

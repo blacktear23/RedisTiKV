@@ -28,6 +28,7 @@ fn get_info_string() -> String {
         set:{}\n\
         mget:{}\n\
         mset:{}\n\
+        setnx:{}\n\
         del:{}\n\
         exists:{}\n\
         scan:{}\n\
@@ -46,6 +47,7 @@ fn get_info_string() -> String {
         REQUEST_CMD_COUNTER.with_label_values(&["set"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["mget"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["mset"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["setnx"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["del"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["exists"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["scan"]).get(),
