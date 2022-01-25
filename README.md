@@ -58,6 +58,11 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.cset [KEY] [VALUE]: Put a Key-Value pair into TiKV, if successed, then put it into Redis.
 * tikv.cdel [KEY1] [KEY2]..: Delete key data from Redis cache first and then delete it from TiKV.
 * tikv.status: Get metrics info from RedisTiKV module.
+* tikv.rget [KEY]: Get key's data from TiKV using RawKV.
+* tikv.rset [KEY] [VALUE]: Put Key-Value data to TiKV using RawKV.
+* tikv.rdel [KEY1] [KEY2]...: Delete Key-Value data from TiKV using RawKV.
+* tikv.rscan [STARTKEY] [ENDKEY] [LIMIT]: Scan TiKV cluster data's using given range `STARTKEY` to `ENDKEY` and return `LIMIT` rows. If `ENDKEY` ignored the range is from `STARTKEY` to end. Using RawKV.
+* tikv.rsetnx [KEY] [VALUE]: Set Key-Value pair data to TiKV if Key not exists. Using RawKV.
 
 #### Get PD API data
 * pd.members [PDSERVERADDR]: request PD to get cluster members data.
