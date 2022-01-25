@@ -79,11 +79,12 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 ## Module Parameters
 
 ```
-module load libredistikv.so [replacesys|replacesyscache] [autoconn] [PD_ADDR1,PD_ADDR2] [autoconnmysql] [MYSQL_URL] [instanceid] [INSTANCE_ID] [enablepromhttp]
+module load libredistikv.so [replacesys|replacesyscache|replacesysrawkv] [autoconn] [PD_ADDR1,PD_ADDR2] [autoconnmysql] [MYSQL_URL] [instanceid] [INSTANCE_ID] [enablepromhttp]
 ```
 
 * replacesys: replace system command. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
 * replacesyscache: replace system command with cached commands.
+* replacesysrawkv: replace system command with RawKV client.
 * enablepromhttp: will start a HTTP server listen to `127.0.0.1:9898` for expose prometheus metrics data.
 * autoconn: auto connect to TiKV with followed PD addresses when module loaded. Many address separated by `,`
 * autoconnmysql: auto connect to MySQL with followed MYSQL\_URL when module loaded.
