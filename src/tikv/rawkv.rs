@@ -36,6 +36,11 @@ async fn wrap_rawkv_get(key: String) -> Result<Option<Value>, Error> {
                     sleep(std::cmp::min(2 + i, 500)).await;
                     continue;
                 }
+                if let Error::EntryNotFoundInRegionCache = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
+                }
                 return Err(err);
             }
         } 
@@ -56,6 +61,11 @@ async fn wrap_rawkv_put(key: String, val: &str) -> Result<(), Error> {
             }
             Err(err) => {
                 if let Error::RegionError(ref _rerr) = err {
+                    last_err.replace(err);
+                    sleep(std::cmp::min(2 + i, 500)).await;
+                    continue;
+                }
+                if let Error::EntryNotFoundInRegionCache = err {
                     last_err.replace(err);
                     sleep(std::cmp::min(2 + i, 500)).await;
                     continue;
