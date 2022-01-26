@@ -14,7 +14,7 @@ use crate::{
 use redis_module::{Context, RedisString, Status, ThreadSafeContext};
 use std::sync::{Arc, Mutex, RwLock};
 use std::thread;
-use tokio::runtime::{Handle, Runtime};
+use tokio::runtime::{Handle, Runtime, Builder};
 use tokio::time::{sleep, Duration};
 
 lazy_static! {
@@ -122,7 +122,12 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     }
 
     thread::spawn(move || {
-        let runtime = Runtime::new().unwrap();
+        let runtime = Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(10)
+            .build()
+            .unwrap();
+        // let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
         GLOBAL_RT.write().unwrap().replace(Box::new(handle));
         *GLOBAL_RUNNING.write().unwrap() = 1;
