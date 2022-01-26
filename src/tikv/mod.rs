@@ -52,7 +52,10 @@ pub use crate::tikv::{
     },
     metrics::{prometheus_server, tikv_status},
     procexec::tikv_ctl,
-    rawkv::{tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, tikv_rawkv_scan, tikv_rawkv_setnx},
+    rawkv::{
+        tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, tikv_rawkv_scan, tikv_rawkv_setnx,
+        tikv_rawkv_cached_del, tikv_rawkv_cached_get, tikv_rawkv_cached_put,
+    },
     set::{tikv_sadd, tikv_scard, tikv_smembers},
     string::{
         tikv_batch_get, tikv_batch_put, tikv_cached_del, tikv_cached_get, tikv_cached_put,
