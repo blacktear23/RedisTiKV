@@ -37,11 +37,13 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut support_binary: bool = false;
     let mut bin_path: String = String::from("");
     let mut enable_prometheus_http: bool = false;
+    let mut threads: usize = 32;
     if args.len() > 0 {
         let mut start_pd_addrs = false;
         let mut start_mysql_addrs = false;
         let mut start_bin_path = false;
         let mut start_instance_id = false;
+        let mut start_threads = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -118,13 +120,27 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                 enable_prometheus_http = true;
                 return;
             }
+            if ss == "threads" {
+                start_threads = true;
+                return
+            }
+            if start_threads {
+                let threads_str = ss.clone();
+                match threads_str.parse::<u64>() {
+                    Ok(val) => {
+                        threads = val as usize;
+                    },
+                    Err(_) => {},
+                };
+                start_threads = false;
+            }
         });
     }
 
     thread::spawn(move || {
         let runtime = Builder::new_multi_thread()
             .enable_all()
-            .worker_threads(10)
+            .worker_threads(threads)
             .build()
             .unwrap();
         // let runtime = Runtime::new().unwrap();
