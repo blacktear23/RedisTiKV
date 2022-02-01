@@ -7,14 +7,6 @@ use redis_module::{
 };
 use tikv_client::{Error, Value};
 
-/*
-fn get_client() -> Result<&'static Box<RawClient>, Error> {
-    let guard = TIKV_RAW_CLIENT.read().unwrap();
-    let client = guard.as_ref().unwrap().clone();
-    return Ok(client);
-}
-*/
-
 pub async fn do_async_rawkv_batch_del(keys: Vec<String>) -> Result<RedisValue, Error> {
     let client = unsafe {TIKV_RAW_CLIENT.as_ref().unwrap()};
     let ekeys = encode_rawkv_keys(DataType::Raw, keys);
@@ -203,6 +195,50 @@ pub async fn do_async_rawkv_cached_put(
     Ok(resp_int(1))
 }
 
+pub async fn do_async_rawkv_incr(key: String, inc: bool) -> Result<RedisValue, Error> {
+    let ekey = encode_rawkv_key(DataType::Raw, &key.clone());
+    let mut new_int: i64 = 0;
+    let mut swapped = false;
+    for i in 0..2000 {
+        let prev: Option<Vec<u8>>;
+        let prev_int: i64;
+        match wrap_rawkv_get(ekey.clone()).await? {
+            Some(val) => {
+                match String::from_utf8_lossy(&val).parse::<i64>() {
+                    Ok(ival) => {
+                        prev_int = ival;
+                        prev = Some(val.clone());
+                    }
+                    Err(err) => {
+                        return Err(Error::StringError(err.to_string()));
+                    }
+                }
+            }
+            None => {
+                prev = None;
+                prev_int = 0;
+            }
+        }
+        if inc {
+            new_int = prev_int + 1;
+        } else {
+            new_int = prev_int - 1;
+        }
+        let new_val = new_int.to_string();
+        let ret = wrap_rawkv_cas(ekey.clone(), prev, &new_val).await?;
+        if ret == 1 {
+            swapped = true;
+            break;
+        }
+        sleep(std::cmp::min(i, 200)).await;
+    }
+    if !swapped {
+        Err(Error::StringError(String::from("Cannot swapped")))
+    } else {
+        Ok(resp_int(new_int))
+    }
+}
+
 pub fn tikv_rawkv_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     REQUEST_COUNTER.inc();
     REQUEST_CMD_COUNTER.with_label_values(&["get"]).inc();
@@ -372,6 +408,38 @@ pub fn tikv_rawkv_cached_del(ctx: &Context, args: Vec<RedisString>) -> RedisResu
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
         let res = do_async_rawkv_batch_del(keys).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_rawkv_incr(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["del"]).inc();
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_rawkv_incr(key.to_owned(), true).await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+pub fn tikv_rawkv_decr(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["del"]).inc();
+    if args.len() < 2 {
+        return Err(RedisError::WrongArity);
+    }
+    let mut args = args.into_iter().skip(1);
+    let key = args.next_str()?;
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = do_async_rawkv_incr(key.to_owned(), false).await;
         redis_resp(blocked_client, res);
     });
     Ok(RedisValue::NoReply)

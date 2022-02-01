@@ -7,7 +7,8 @@ use crate::{
         metrics::INSTANCE_ID_GAUGER,
         prometheus_server, set_instance_id, tikv_batch_get, tikv_batch_put, tikv_cached_del,
         tikv_cached_get, tikv_cached_put, tikv_ctl, tikv_del, tikv_exists, tikv_get, tikv_put,
-        tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, rawkv::{tikv_rawkv_cached_get, tikv_rawkv_cached_del, tikv_rawkv_cached_put},
+        tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, 
+        rawkv::{tikv_rawkv_cached_get, tikv_rawkv_cached_del, tikv_rawkv_cached_put, tikv_rawkv_incr, tikv_rawkv_decr},
     },
     try_redis_command,
 };
@@ -252,10 +253,14 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             try_redis_command!(ctx, "get", tikv_rawkv_cached_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_rawkv_cached_put, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_rawkv_cached_del, "", 0, 0, 0);
+            try_redis_command!(ctx, "incr", tikv_rawkv_incr, "", 0, 0, 0);
+            try_redis_command!(ctx, "decr", tikv_rawkv_decr, "", 0, 0, 0);
         } else if replace_system_with_rawkv {
             try_redis_command!(ctx, "get", tikv_rawkv_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_rawkv_put, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_rawkv_del, "", 0, 0, 0);
+            try_redis_command!(ctx, "incr", tikv_rawkv_incr, "", 0, 0, 0);
+            try_redis_command!(ctx, "decr", tikv_rawkv_decr, "", 0, 0, 0);
         } else {
             try_redis_command!(ctx, "get", tikv_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_put, "", 0, 0, 0);

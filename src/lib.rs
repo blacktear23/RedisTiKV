@@ -91,6 +91,13 @@ redis_module! {
         ["tikv.rcset", tikv_rawkv_cached_put, "", 0, 0, 0],
         ["tikv.rcget", tikv_rawkv_cached_get, "", 0, 0, 0],
         ["tikv.rcdel", tikv_rawkv_cached_del, "", 0, 0, 0],
+        ["tikv.rincr", tikv_rawkv_incr, "", 0, 0, 0],
+        ["tikv.rdecr", tikv_rawkv_decr, "", 0, 0, 0],
+        // TiKV rawkv admin
+        ["tikv.dscan", tikv_rawkv_dscan, "", 0, 0, 0],
+        ["tikv.lscan", tikv_rawkv_lscan, "", 0, 0, 0],
+        ["tikv.wscan", tikv_rawkv_wscan, "", 0, 0, 0],
+        ["tikv.gc", tikv_gc, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.apipost", pd_apipost, "", 0, 0, 0],
