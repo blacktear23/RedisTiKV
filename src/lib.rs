@@ -93,6 +93,8 @@ redis_module! {
         ["tikv.rcdel", tikv_rawkv_cached_del, "", 0, 0, 0],
         ["tikv.rincr", tikv_rawkv_incr, "", 0, 0, 0],
         ["tikv.rdecr", tikv_rawkv_decr, "", 0, 0, 0],
+        ["tikv.rincrby", tikv_rawkv_incrby, "", 0, 0, 0],
+        ["tikv.rdecrby", tikv_rawkv_decrby, "", 0, 0, 0],
         // TiKV rawkv admin
         ["tikv.dscan", tikv_rawkv_dscan, "", 0, 0, 0],
         ["tikv.lscan", tikv_rawkv_lscan, "", 0, 0, 0],

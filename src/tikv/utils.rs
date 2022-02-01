@@ -158,7 +158,7 @@ pub async fn wrap_put(txn: &mut Transaction, key: &str, value: &str) -> Result<(
                             sleep(std::cmp::min(2 + i, 500)).await;
                             continue;
                         }
-                    }    
+                    }
                 }
                 if let Error::KeyError(ref kerr) = err {
                     if kerr.retryable != "" {

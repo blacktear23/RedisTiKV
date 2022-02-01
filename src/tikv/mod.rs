@@ -2,6 +2,7 @@ use std::collections::{HashMap, LinkedList};
 use std::sync::{Arc, Mutex, RwLock};
 use tikv_client::{RawClient, Transaction, TransactionClient};
 
+pub mod admin;
 pub mod encoding;
 pub mod hash;
 pub mod init;
@@ -14,7 +15,6 @@ pub mod string;
 pub mod sync;
 pub mod trans;
 pub mod utils;
-pub mod admin;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -42,6 +42,7 @@ pub fn get_instance_id() -> u64 {
 
 // Export commands
 pub use crate::tikv::{
+    admin::{tikv_gc, tikv_rawkv_dscan, tikv_rawkv_lscan, tikv_rawkv_wscan},
     hash::{
         tikv_hdel, tikv_hexists, tikv_hget, tikv_hget_all, tikv_hkeys, tikv_hmget, tikv_hmset,
         tikv_hset, tikv_hvals,
@@ -54,9 +55,9 @@ pub use crate::tikv::{
     metrics::{prometheus_server, tikv_status},
     procexec::tikv_ctl,
     rawkv::{
-        tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_put, tikv_rawkv_scan, tikv_rawkv_setnx,
-        tikv_rawkv_cached_del, tikv_rawkv_cached_get, tikv_rawkv_cached_put,
-        tikv_rawkv_incr, tikv_rawkv_decr,
+        tikv_rawkv_cached_del, tikv_rawkv_cached_get, tikv_rawkv_cached_put, tikv_rawkv_decr,
+        tikv_rawkv_decrby, tikv_rawkv_del, tikv_rawkv_get, tikv_rawkv_incr, tikv_rawkv_incrby,
+        tikv_rawkv_put, tikv_rawkv_scan, tikv_rawkv_setnx,
     },
     set::{tikv_sadd, tikv_scard, tikv_smembers},
     string::{
@@ -65,5 +66,4 @@ pub use crate::tikv::{
     },
     sync::{tikv_load, tikv_scan_load, tikv_sync},
     trans::{tikv_begin, tikv_commit, tikv_rollback},
-    admin::{tikv_rawkv_dscan, tikv_rawkv_lscan, tikv_rawkv_wscan, tikv_gc},
 };

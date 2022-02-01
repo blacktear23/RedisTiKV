@@ -26,6 +26,8 @@ fn get_info_string() -> String {
         requests:{}\n\
         get:{}\n\
         set:{}\n\
+        incr:{}\n\
+        decr:{}\n\
         mget:{}\n\
         mset:{}\n\
         setnx:{}\n\
@@ -45,6 +47,8 @@ fn get_info_string() -> String {
         REQUEST_COUNTER.get(),
         REQUEST_CMD_COUNTER.with_label_values(&["get"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["set"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["incr"]).get(),
+        REQUEST_CMD_COUNTER.with_label_values(&["decr"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["mget"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["mset"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["setnx"]).get(),
