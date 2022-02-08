@@ -15,6 +15,7 @@ pub mod string;
 pub mod sync;
 pub mod trans;
 pub mod utils;
+pub mod pprof;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -42,7 +43,7 @@ pub fn get_instance_id() -> u64 {
 
 // Export commands
 pub use crate::tikv::{
-    admin::{tikv_gc, tikv_rawkv_dscan, tikv_rawkv_lscan, tikv_rawkv_wscan},
+    admin::{tikv_gc, tikv_rawkv_dscan, tikv_rawkv_lscan, tikv_rawkv_wscan, tikv_rawkv_cfscan},
     hash::{
         tikv_hdel, tikv_hexists, tikv_hget, tikv_hget_all, tikv_hkeys, tikv_hmget, tikv_hmset,
         tikv_hset, tikv_hvals,
@@ -66,4 +67,5 @@ pub use crate::tikv::{
     },
     sync::{tikv_load, tikv_scan_load, tikv_sync},
     trans::{tikv_begin, tikv_commit, tikv_rollback},
+    pprof::{tikv_pprof_start, tikv_pprof_finish},
 };

@@ -543,6 +543,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-chain"
+version = "0.12.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2d2f06b9cac1506ece98fe3231e3cc9c4410ec3d5b1f24ae1c8946f0742cdefc"
+dependencies = [
+ "backtrace",
+ "version_check",
+]
+
+[[package]]
 name = "etcd-client"
 version = "0.8.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -840,6 +850,17 @@ name = "glob"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9b919933a397b79c37e33b77bb2aa3dc8eb6e165ad809e58ff75bc7db2e34574"
+
+[[package]]
+name = "gperftools"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "20a3fc5818b1223ec628fc6998c8900486208b577f78c07500d4b52f983ebc9d"
+dependencies = [
+ "error-chain",
+ "lazy_static",
+ "pkg-config",
+]
 
 [[package]]
 name = "grpcio"
@@ -1978,6 +1999,7 @@ name = "redistikv"
 version = "99.99.99"
 dependencies = [
  "etcd-client",
+ "gperftools",
  "hyper",
  "lazy_static",
  "mysql_async",
@@ -2432,7 +2454,7 @@ dependencies = [
 [[package]]
 name = "tikv-client"
 version = "0.1.0"
-source = "git+https://github.com/ekexium/client-rust?branch=fix-pessimitic-lock-ttl#4f3e2c8d191461ef96264490dc1485cb1a07e864"
+source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -2463,7 +2485,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-common"
 version = "0.1.0"
-source = "git+https://github.com/ekexium/client-rust?branch=fix-pessimitic-lock-ttl#4f3e2c8d191461ef96264490dc1485cb1a07e864"
+source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
 dependencies = [
  "futures 0.3.19",
  "grpcio",
@@ -2479,7 +2501,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-pd"
 version = "0.1.0"
-source = "git+https://github.com/ekexium/client-rust?branch=fix-pessimitic-lock-ttl#4f3e2c8d191461ef96264490dc1485cb1a07e864"
+source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
 dependencies = [
  "async-trait",
  "futures 0.3.19",
@@ -2492,7 +2514,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-proto"
 version = "0.1.0"
-source = "git+https://github.com/ekexium/client-rust?branch=fix-pessimitic-lock-ttl#4f3e2c8d191461ef96264490dc1485cb1a07e864"
+source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
 dependencies = [
  "futures 0.3.19",
  "grpcio",
@@ -2506,7 +2528,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-store"
 version = "0.1.0"
-source = "git+https://github.com/ekexium/client-rust?branch=fix-pessimitic-lock-ttl#4f3e2c8d191461ef96264490dc1485cb1a07e864"
+source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
 dependencies = [
  "async-trait",
  "derive-new",

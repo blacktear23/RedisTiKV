@@ -13,9 +13,10 @@ reqwest = { version = "0.11", features = ["json", "blocking"] }
 tokio = { version = "1", features = ["full"] }
 lazy_static = "1.4.0"
 # tikv-client = "0.1.0"
-tikv-client = { git = "https://github.com/ekexium/client-rust", branch = "fix-pessimitic-lock-ttl" }
+tikv-client = { git = "https://github.com/tikv/client-rust", branch = "master" }
 mysql_async = "0.29.0"
 serde_json = "1.0.59"
 etcd-client = "0.8"
 prometheus = "0.13.0"
 hyper = "0.14.16"
+gperftools = "0.2.0"

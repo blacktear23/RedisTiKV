@@ -11,6 +11,7 @@ extern crate reqwest;
 extern crate serde_json;
 extern crate tikv_client;
 extern crate tokio;
+extern crate gperftools;
 
 mod init;
 mod pd;
@@ -96,10 +97,14 @@ redis_module! {
         ["tikv.rincrby", tikv_rawkv_incrby, "", 0, 0, 0],
         ["tikv.rdecrby", tikv_rawkv_decrby, "", 0, 0, 0],
         // TiKV rawkv admin
+        ["tikv.cfscan", tikv_rawkv_cfscan, "", 0, 0, 0],
         ["tikv.dscan", tikv_rawkv_dscan, "", 0, 0, 0],
         ["tikv.lscan", tikv_rawkv_lscan, "", 0, 0, 0],
         ["tikv.wscan", tikv_rawkv_wscan, "", 0, 0, 0],
         ["tikv.gc", tikv_gc, "", 0, 0, 0],
+        // TiKV pprof
+        ["tikv.pprof.start", tikv_pprof_start, "", 0, 0, 0],
+        ["tikv.pprof.finish", tikv_pprof_finish, "", 0, 0, 0],
         // PD commands
         ["pd.apiget", pd_apiget, "", 0, 0, 0],
         ["pd.apipost", pd_apipost, "", 0, 0, 0],
