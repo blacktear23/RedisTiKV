@@ -24,7 +24,7 @@ pub async fn sleep(ms: u32) {
     tokio::time::sleep(Duration::from_millis(ms as u64)).await;
 }
 
-// Respose for redis blocked client
+// Response for redis blocked client
 pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
 where
     E: std::error::Error,
@@ -41,7 +41,7 @@ where
     };
 }
 
-// Respose for redis blocked client
+// Response for redis blocked client
 pub fn redis_resp_with_ctx<E>(ctx: &ThreadSafeContext<BlockedClient>, result: Result<RedisValue, E>)
 where
     E: std::error::Error,
