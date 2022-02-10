@@ -48,7 +48,19 @@ redis_module! {
         ["tikv.mget", tikv_raw_batch_get, "", 0, 0, 0],
         ["tikv.mset", tikv_raw_batch_set, "", 0, 0, 0],
         ["tikv.redis_set", tikv_redis_set, "", 0, 0, 0],
+        // TiKV hash series
+        ["tikv.hset", tikv_hset, "", 0, 0, 0],
+        ["tikv.hget", tikv_hget, "", 0, 0, 0],
+        ["tikv.hgetall", tikv_hget_all, "", 0, 0, 0],
+        ["tikv.hkeys", tikv_hkeys, "", 0, 0, 0],
+        ["tikv.hvals", tikv_hvals, "", 0, 0, 0],
+        ["tikv.hmset", tikv_hmset, "", 0, 0, 0],
+        ["tikv.hmget", tikv_hmget, "", 0, 0, 0],
+        ["tikv.hexists", tikv_hexists, "", 0, 0, 0],
+        ["tikv.hdel", tikv_hdel, "", 0, 0, 0],
         // Debug Usage Commands
         ["tikv.scan", tikv_raw_scan, "", 0, 0, 0],
+        ["profiler.start", tikv_profile_start, "", 0, 0, 0],
+        ["profiler.finish", tikv_profile_finish, "", 0, 0, 0],
     ],
 }

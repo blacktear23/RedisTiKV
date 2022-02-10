@@ -7,6 +7,8 @@ pub mod connection;
 pub mod errors;
 pub mod asyncs;
 pub mod metrics;
+pub mod profiler;
+pub mod hash;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -39,5 +41,12 @@ pub use crate::commands::{
         tikv_raw_incr, tikv_raw_incrby, tikv_raw_decr, tikv_raw_decrby,
         tikv_raw_exists, tikv_raw_batch_get, tikv_raw_batch_set,
         tikv_raw_scan, tikv_redis_set,
+    },
+    profiler::{
+        tikv_profile_start, tikv_profile_finish,
+    },
+    hash::{
+        tikv_hdel, tikv_hexists, tikv_hget, tikv_hget_all, tikv_hkeys,
+        tikv_hmget, tikv_hmset, tikv_hset, tikv_hvals,
     },
 };

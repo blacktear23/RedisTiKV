@@ -4,6 +4,7 @@ use super::TIKV_RAW_CLIENT;
 
 pub mod string;
 pub mod connection;
+pub mod hash;
 
 pub fn get_client() -> Result<RawClientWrapper, RTError> {
     if unsafe {TIKV_RAW_CLIENT.is_none() } {

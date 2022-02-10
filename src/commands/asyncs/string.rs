@@ -7,9 +7,10 @@ use super::get_client;
 
 pub async fn do_async_rawkv_batch_del(keys: Vec<String>) -> AsyncResult<RedisValue> {
     let client = get_client()?;
+    let num_keys = keys.len();
     let ekeys = KeyEncoder::new().encode_strings(keys);
     let _ = client.batch_delete(ekeys).await?;
-    Ok(resp_ok())
+    Ok(resp_int(num_keys as i64))
 }
 
 pub async fn do_async_rawkv_put_not_exists(key: &str, value: &str) -> AsyncResult<RedisValue> {
@@ -186,7 +187,7 @@ pub async fn do_async_rawkv_batch_get(keys: Vec<String>) -> AsyncResult<RedisVal
         .map(|k| {
             let data = ret.get(Into::<Key>::into(k).as_ref());
             match data {
-                Some(val) => Into::<RedisValue>::into(val.clone()),
+                Some(val) => val.to_owned().into(),
                 None => RedisValue::Null,
             }
         })
