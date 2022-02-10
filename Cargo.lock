@@ -2007,6 +2007,7 @@ dependencies = [
  "redis-module",
  "reqwest",
  "serde_json",
+ "thiserror",
  "tikv-client",
  "tokio",
 ]

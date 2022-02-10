@@ -1,6 +1,8 @@
-pub use crate::init::{BIN_PATH, GLOBAL_COUNTER, GLOBAL_RT};
-use redis_module::redisraw::bindings::RedisModule_GetClientId;
-use redis_module::{BlockedClient, Context, RedisValue, ThreadSafeContext};
+pub use crate::init::GLOBAL_RT;
+use redis_module::{
+    BlockedClient, Context, RedisValue, ThreadSafeContext,
+    redisraw::bindings::RedisModule_GetClientId,
+};
 use std::future::Future;
 use tokio::{
     io::{Error, ErrorKind},
@@ -78,14 +80,6 @@ pub async fn proc_exec(command: String, args: Vec<String>) -> Result<String, Err
         Ok(stdout) => Ok(stdout),
         Err(err) => Err(Error::new(ErrorKind::Other, err.to_string())),
     }
-}
-
-pub fn get_binary_path() -> String {
-    let guard = BIN_PATH.read().unwrap();
-    if guard.is_none() {
-        return String::from("");
-    }
-    guard.as_ref().unwrap().clone()
 }
 
 // Try to register a redis command, if got error, just log a warning.
