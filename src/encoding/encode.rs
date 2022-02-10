@@ -63,4 +63,33 @@ impl KeyEncoder {
         let ret = format!("{}_D_{}`", prefix, key);
         ret.into()
     }
+
+    pub fn encode_list_meta_key(&self, key: &str) -> Key {
+        let prefix = self.get_prefix(DataType::List);
+        let ret = format!("{}_M_{}", prefix, key);
+        ret.into()
+    }
+
+    pub fn encode_list_elem_key(&self, key: &str, idx: i64) -> Key {
+        let prefix = self.get_prefix(DataType::List);
+        let mut res = format!("{}_D_{}_", prefix, key).into_bytes();
+        res.append(&mut idx.to_be_bytes().to_vec());
+        res.into()
+    }
+
+    pub fn encode_list_meta(&self, l: i64, r:i64) -> Vec<u8> {
+        [l.to_be_bytes(), r.to_be_bytes()].concat().to_vec()
+    }
+
+    pub fn encode_list_elem_start(&self, key: &str) -> Key {
+        let prefix = self.get_prefix(DataType::List);
+        let ret = format!("{}_D_{}_", prefix, key).into_bytes();
+        ret.into()
+    }
+
+    pub fn encode_list_elem_end(&self, key: &str) -> Key {
+        let prefix = self.get_prefix(DataType::List);
+        let ret = format!("{}_D_{}`", prefix, key).into_bytes();
+        ret.into()
+    }
 }

@@ -58,9 +58,23 @@ redis_module! {
         ["tikv.hmget", tikv_hmget, "", 0, 0, 0],
         ["tikv.hexists", tikv_hexists, "", 0, 0, 0],
         ["tikv.hdel", tikv_hdel, "", 0, 0, 0],
+        // TiKV list series
+        ["tikv.lpush", tikv_lpush, "", 0, 0, 0],
+        ["tikv.rpush", tikv_rpush, "", 0, 0, 0],
+        ["tikv.lrange", tikv_lrange, "", 0, 0, 0],
+        ["tikv.llen", tikv_llen, "", 0, 0, 0],
+        ["tikv.rpop", tikv_rpop, "", 0, 0, 0],
+        ["tikv.lpop", tikv_lpop, "", 0, 0, 0],
+        ["tikv.lindex", tikv_lindex, "", 0, 0, 0],
+        ["tikv.ldel", tikv_ldel, "", 0, 0, 0],
         // Debug Usage Commands
         ["tikv.scan", tikv_raw_scan, "", 0, 0, 0],
         ["profiler.start", tikv_profile_start, "", 0, 0, 0],
         ["profiler.finish", tikv_profile_finish, "", 0, 0, 0],
+        // TiKV rawkv admin
+        ["tikv.cfscan", tikv_rawkv_cfscan, "", 0, 0, 0],
+        ["tikv.dscan", tikv_rawkv_dscan, "", 0, 0, 0],
+        ["tikv.lscan", tikv_rawkv_lscan, "", 0, 0, 0],
+        ["tikv.wscan", tikv_rawkv_wscan, "", 0, 0, 0],
     ],
 }

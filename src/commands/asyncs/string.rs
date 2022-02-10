@@ -1,8 +1,11 @@
 use std::collections::HashMap;
-
 use redis_module::{RedisValue, ThreadSafeContext, BlockedClient};
 use tikv_client::{Key, Value, KvPair};
-use crate::{commands::errors::{AsyncResult, RTError}, encoding::{KeyEncoder, KeyDecoder}, utils::{resp_ok, resp_int, sleep}};
+use crate::{
+    commands::errors::{AsyncResult, RTError},
+    encoding::{KeyEncoder, KeyDecoder},
+    utils::{resp_int, sleep},
+};
 use super::get_client;
 
 pub async fn do_async_rawkv_batch_del(keys: Vec<String>) -> AsyncResult<RedisValue> {
@@ -16,7 +19,7 @@ pub async fn do_async_rawkv_batch_del(keys: Vec<String>) -> AsyncResult<RedisVal
 pub async fn do_async_rawkv_put_not_exists(key: &str, value: &str) -> AsyncResult<RedisValue> {
     let client = get_client()?;
     let ekey = KeyEncoder::new().encode_string(key);
-    let (_, swapped) = client.compare_and_swap(ekey, None.into(), value).await?;
+    let (_, swapped) = client.compare_and_swap(ekey, None.into(), value.into()).await?;
     if swapped {
         Ok(RedisValue::Integer(1))
     } else {
@@ -152,7 +155,7 @@ pub async fn do_async_rawkv_incr(
             new_int = prev_int - step;
         }
         let new_val = new_int.to_string();
-        let (_, ret) = client.compare_and_swap(ekey.clone(), prev, &new_val).await?;
+        let (_, ret) = client.compare_and_swap(ekey.clone(), prev, new_val.into()).await?;
         if ret {
             swapped = true;
             break;

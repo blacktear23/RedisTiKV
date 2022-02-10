@@ -1,4 +1,4 @@
-use tikv_client::{RawClient, Value, Key, Error, BoundRange, KvPair};
+use tikv_client::{RawClient, Value, Key, Error, BoundRange, KvPair, ColumnFamily};
 
 use crate::utils::sleep;
 
@@ -10,9 +10,13 @@ pub struct RawClientWrapper {
 impl RawClientWrapper {
     pub fn new(c: &RawClient) -> Self {
         RawClientWrapper { 
-            client: Box::new(c.with_atomic_for_cas()),
+            client: Box::new(c.with_cf(ColumnFamily::Default)),
             retries: 2000,
         }
+    }
+
+    pub fn with_cf(&self, cf: ColumnFamily) -> RawClient {
+        self.client.with_cf(cf)
     }
 
     fn error_retryable(&self, err: &Error) -> bool {
@@ -73,11 +77,12 @@ impl RawClientWrapper {
         &self, 
         key: Key, 
         prev_val: Option<Value>, 
-        val: &str,
+        val: Value,
     ) -> Result<(Option<Value>, bool), Error> {
         let mut last_err: Option<Error> = None;
         for i in 0..self.retries {
             match self.client
+                .with_atomic_for_cas()
                 .compare_and_swap(key.clone(), prev_val.clone(), val.to_owned())
                 .await
             {
@@ -183,6 +188,32 @@ impl RawClientWrapper {
         for i in 0..self.retries {
             match self.client
                 .batch_put(kvs.clone())
+                .await
+            {
+                Ok(val) => {
+                    return Ok(val);
+                }
+                Err(err) => {
+                    if self.error_retryable(&err) {
+                        last_err.replace(err);
+                        sleep(std::cmp::min(2 + i, 200)).await;
+                        continue;
+                    }
+                    return Err(err);
+                }
+            }
+        }
+        match last_err {
+            Some(err) => Err(err),
+            None => Ok(()),
+        }
+    }
+
+    pub async fn delete_range(&self, range: BoundRange) -> Result<(), Error> {
+        let mut last_err: Option<Error> = None;
+        for i in 0..self.retries {
+            match self.client
+                .delete_range(range.clone())
                 .await
             {
                 Ok(val) => {
