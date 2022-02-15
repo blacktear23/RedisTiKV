@@ -4,7 +4,7 @@ use crate::utils::resp_ok;
 
 static mut PROFILE_STARTED: bool = false;
 
-pub fn tikv_pprof_start(_ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+pub fn tikv_profile_start(_ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if unsafe {PROFILE_STARTED} {
         return Err(RedisError::String(String::from("Already started")));
     }
@@ -19,7 +19,7 @@ pub fn tikv_pprof_start(_ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     Ok(resp_ok())
 }
 
-pub fn tikv_pprof_finish(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
+pub fn tikv_profile_finish(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
     if ! unsafe {PROFILE_STARTED} {
         return Err(RedisError::String(String::from("Not Started")));
     }

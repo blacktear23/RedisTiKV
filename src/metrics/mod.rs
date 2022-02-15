@@ -1,11 +1,9 @@
 use crate::get_instance_id;
-use hyper::{
-    header::CONTENT_TYPE,
-    service::{make_service_fn, service_fn},
-    Body, Request, Response, Server,
-};
-use prometheus::{Encoder, IntCounter, IntCounterVec, IntGauge, TextEncoder};
-use redis_module::{Context, RedisResult, RedisString, RedisValue};
+use prometheus::{IntCounter, IntCounterVec, IntGauge};
+
+mod http;
+
+pub use self::http::prometheus_server;
 
 lazy_static! {
     pub static ref INSTANCE_ID_GAUGER: IntGauge =
@@ -20,7 +18,7 @@ lazy_static! {
     .unwrap();
 }
 
-fn get_info_string() -> String {
+pub fn get_info_string() -> String {
     let info = format!(
         "instance_id:{}\n\
         requests:{}\n\
@@ -66,38 +64,4 @@ fn get_info_string() -> String {
         REQUEST_CMD_COUNTER.with_label_values(&["hdel"]).get(),
     );
     return info;
-}
-
-pub fn tikv_status(_ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let info = get_info_string();
-    Ok(RedisValue::SimpleString(info))
-}
-
-async fn serve_req(_r: Request<Body>) -> Result<Response<Body>, hyper::Error> {
-    let encoder = TextEncoder::new();
-    let metric_families = prometheus::gather();
-    let mut buffer = vec![];
-    encoder.encode(&metric_families, &mut buffer).unwrap();
-
-    let response = Response::builder()
-        .status(200)
-        .header(CONTENT_TYPE, encoder.format_type())
-        .body(Body::from(buffer))
-        .unwrap();
-
-    Ok(response)
-}
-
-pub async fn prometheus_server() -> Result<(), hyper::Error> {
-    let addr = ([127, 0, 0, 1], 9898).into();
-    println!("Listening on http://{}", addr);
-
-    // gather all metrics to hold the data
-    let _ = get_info_string();
-    let serve_future = Server::bind(&addr).serve(make_service_fn(|_| async {
-        Ok::<_, hyper::Error>(service_fn(serve_req))
-    }));
-
-    serve_future.await?;
-    Ok(())
 }

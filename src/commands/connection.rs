@@ -1,32 +1,10 @@
 use crate::{
-    tikv::{PD_ADDRS, TIKV_RAW_CLIENT, TIKV_TNX_CONN_POOL},
-    utils::{redis_resp, resp_ok, resp_sstr, tokio_spawn},
+    utils::{redis_resp, resp_sstr, tokio_spawn},
+    commands::asyncs::connection::*,
 };
 use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
-use tikv_client::{Error, RawClient};
 
-pub async fn do_async_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
-    PD_ADDRS.write().unwrap().replace(addrs.clone());
-    Ok(resp_ok())
-}
-
-pub async fn do_async_rawkv_connect(addrs: Vec<String>) -> Result<RedisValue, Error> {
-    let client = RawClient::new(addrs, None).await?;
-    unsafe {
-        TIKV_RAW_CLIENT.replace(client);
-    };
-    Ok(resp_ok())
-}
-
-pub async fn do_async_close() -> Result<RedisValue, Error> {
-    *PD_ADDRS.write().unwrap() = None;
-    let mut pool = TIKV_TNX_CONN_POOL.lock().unwrap();
-    for _i in 0..pool.len() {
-        let client = pool.pop_front();
-        drop(client);
-    }
-    Ok(resp_sstr("Closed"))
-}
+use super::PD_ADDRS;
 
 pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if args.len() < 1 {
