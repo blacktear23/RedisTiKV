@@ -1,4 +1,5 @@
 pub use crate::init::GLOBAL_RT;
+use crate::init::GLOBAL_RT_FAST;
 use redis_module::{
     BlockedClient, Context, RedisValue, ThreadSafeContext,
     redisraw::bindings::RedisModule_GetClientId,
@@ -65,8 +66,9 @@ where
     T: Future + Send + 'static,
     T::Output: Send + 'static,
 {
-    let tmp = GLOBAL_RT.read().unwrap();
-    let hdl = tmp.as_ref().unwrap();
+    // let tmp = GLOBAL_RT.read().unwrap();
+    // let hdl = tmp.as_ref().unwrap();
+    let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
     hdl.spawn(future);
 }
 

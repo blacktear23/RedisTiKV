@@ -16,6 +16,8 @@ lazy_static! {
     static ref GLOBAL_RUNNING: Arc<RwLock<u32>> = Arc::new(RwLock::new(1));
 }
 
+pub static mut GLOBAL_RT_FAST: Option<Box<Handle>> = None;
+
 // Initial tokio main executor in other thread
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut replace_system: bool = false;
@@ -94,7 +96,10 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             .unwrap();
         // let runtime = Runtime::new().unwrap();
         let handle = runtime.handle().clone();
-        GLOBAL_RT.write().unwrap().replace(Box::new(handle));
+        GLOBAL_RT.write().unwrap().replace(Box::new(handle.clone()));
+        unsafe {
+            GLOBAL_RT_FAST.replace(Box::new(handle));
+        }
         *GLOBAL_RUNNING.write().unwrap() = 1;
         let tctx = ThreadSafeContext::new();
         tctx.lock().log_notice("Tokio Runtime 1 Created");
