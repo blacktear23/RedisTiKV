@@ -23,7 +23,7 @@ impl RawClientWrapper {
         match err {
             Error::RegionError(_) => true,
             Error::EntryNotFoundInRegionCache => true,
-            Error::KvError => true,
+            Error::KvError { message: _ } => true,
             _ => false,
         }
     }
