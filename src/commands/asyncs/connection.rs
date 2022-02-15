@@ -1,5 +1,5 @@
 use crate::{
-    commands::{PD_ADDRS, TIKV_RAW_CLIENT, TIKV_TNX_CONN_POOL, errors::AsyncResult},
+    commands::{PD_ADDRS, TIKV_RAW_CLIENT, TIKV_TNX_CONN_POOL, errors::AsyncResult, TIKV_RAW_CLIENT_2},
     utils::{resp_ok, resp_sstr},
 };
 use redis_module::RedisValue;
@@ -11,10 +11,14 @@ pub async fn do_async_txn_connect(addrs: Vec<String>) -> AsyncResult<RedisValue>
 }
 
 pub async fn do_async_raw_connect(addrs: Vec<String>) -> AsyncResult<RedisValue> {
-    let client = RawClient::new(addrs, None).await?;
+    let client = RawClient::new(addrs.clone(), None).await?;
     unsafe {
         TIKV_RAW_CLIENT.replace(client);
     };
+    let client_2 = RawClient::new(addrs, None).await?;
+    unsafe {
+        TIKV_RAW_CLIENT_2.replace(client_2);
+    }
     Ok(resp_ok())
 }
 

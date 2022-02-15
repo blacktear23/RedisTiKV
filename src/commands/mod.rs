@@ -22,6 +22,7 @@ lazy_static! {
 }
 
 pub static mut TIKV_RAW_CLIENT: Option<RawClient> = None;
+pub static mut TIKV_RAW_CLIENT_2: Option<RawClient> = None;
 
 pub static mut INSTANCE_ID: u64 = 0;
 
