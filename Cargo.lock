@@ -2455,7 +2455,7 @@ dependencies = [
 [[package]]
 name = "tikv-client"
 version = "0.1.0"
-source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#5ee24a27c15f19b86ab45f1d6945d0f98a541673"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -2486,7 +2486,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-common"
 version = "0.1.0"
-source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#5ee24a27c15f19b86ab45f1d6945d0f98a541673"
 dependencies = [
  "futures 0.3.19",
  "grpcio",
@@ -2502,7 +2502,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-pd"
 version = "0.1.0"
-source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#5ee24a27c15f19b86ab45f1d6945d0f98a541673"
 dependencies = [
  "async-trait",
  "futures 0.3.19",
@@ -2515,7 +2515,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-proto"
 version = "0.1.0"
-source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#5ee24a27c15f19b86ab45f1d6945d0f98a541673"
 dependencies = [
  "futures 0.3.19",
  "grpcio",
@@ -2529,7 +2529,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-store"
 version = "0.1.0"
-source = "git+https://github.com/tikv/client-rust?branch=master#196b06eb9da24de6cd5803dd2cb779685d72d969"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#5ee24a27c15f19b86ab45f1d6945d0f98a541673"
 dependencies = [
  "async-trait",
  "derive-new",
