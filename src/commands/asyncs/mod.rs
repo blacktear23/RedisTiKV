@@ -7,6 +7,7 @@ pub mod connection;
 pub mod hash;
 pub mod list;
 pub mod admin;
+pub mod set;
 
 pub fn get_client() -> Result<RawClientWrapper, RTError> {
     if unsafe {TIKV_RAW_CLIENT.is_none() } {

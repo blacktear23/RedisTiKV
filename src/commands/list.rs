@@ -1,11 +1,14 @@
 use std::str::FromStr;
 use crate::{
+    metrics::*,
     commands::asyncs::list::*,
     utils::{redis_resp, tokio_spawn},
 };
 use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
 
 pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["lpush"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -25,6 +28,8 @@ pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_lrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["lrange"]).inc();
     if args.len() < 4 {
         return Err(RedisError::WrongArity);
     }
@@ -45,6 +50,8 @@ pub fn tikv_lrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["lpush"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -64,6 +71,8 @@ pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_llen(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["llen"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -79,6 +88,8 @@ pub fn tikv_llen(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_lpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["lpop"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -104,6 +115,8 @@ pub fn tikv_lpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_rpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["rpop"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }
@@ -129,6 +142,8 @@ pub fn tikv_rpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_lindex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["lindex"]).inc();
     if args.len() < 3 {
         return Err(RedisError::WrongArity);
     }
@@ -151,6 +166,8 @@ pub fn tikv_lindex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
 }
 
 pub fn tikv_ldel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&["ldel"]).inc();
     if args.len() < 2 {
         return Err(RedisError::WrongArity);
     }

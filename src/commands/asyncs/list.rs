@@ -4,7 +4,7 @@ use crate::{
     utils::{resp_int, sleep, resp_ok}, client::RawClientWrapper,
 };
 use redis_module::RedisValue;
-use tikv_client::{Key};
+use tikv_client::Key;
 
 #[derive(Copy, Clone, Debug)]
 pub enum ListDirection {

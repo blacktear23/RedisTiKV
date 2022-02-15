@@ -27,4 +27,9 @@ impl KeyDecoder {
             None => (std::u32::MAX as i64, std::u32::MAX as i64),
         }
     }
+
+    pub fn decode_set_member(&self, rkey: Key, key: &str) -> Vec<u8> {
+        let mut bytes: Vec<u8> = rkey.clone().into();
+        bytes.drain(17 + key.len() + 1..).collect()
+    }
 }

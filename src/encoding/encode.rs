@@ -92,4 +92,22 @@ impl KeyEncoder {
         let ret = format!("{}_D_{}`", prefix, key).into_bytes();
         ret.into()
     }
+
+    pub fn encode_set(&self, key: &str, member: &str) -> Key {
+        let prefix = self.get_prefix(DataType::Set);
+        let ret = format!("{}_D_{}_{}", prefix, key, member);
+        ret.into()
+    }
+
+    pub fn encode_set_start(&self, key: &str) -> Key {
+        let prefix = self.get_prefix(DataType::Set);
+        let ret = format!("{}_D_{}_", prefix, key);
+        ret.into()
+    }
+
+    pub fn encode_set_end(&self, key: &str) -> Key {
+        let prefix = self.get_prefix(DataType::Set);
+        let ret = format!("{}_D_{}`", prefix, key);
+        ret.into()
+    }
 }
