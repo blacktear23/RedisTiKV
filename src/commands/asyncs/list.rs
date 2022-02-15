@@ -114,7 +114,6 @@ pub async fn do_async_pop(
     count: i64,
     dir: ListDirection,
 ) -> AsyncResult<RedisValue> {
-    println!("{:?}", &count);
     let client = get_client()?;
     let encoder = KeyEncoder::new();
     let emkey = encoder.encode_list_meta_key(key);
@@ -125,9 +124,7 @@ pub async fn do_async_pop(
     let start_key = encoder.encode_list_elem_key(key, lkey);
     let end_key = encoder.encode_list_elem_key(key, rkey);
     let range = start_key..end_key;
-    println!("{:?}", &range);
     let result = client.scan(range.into(), count as u32).await?;
-    println!("{:?}", &result);
     let mut rkeys: Vec<Key> = Vec::new();
     let mut values: Vec<Vec<u8>> = Vec::new();
     result.into_iter()
