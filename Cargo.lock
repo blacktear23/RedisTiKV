@@ -2427,7 +2427,7 @@ dependencies = [
 [[package]]
 name = "tikv-client"
 version = "0.1.0"
-source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#6637adfd100e91fd965f0e7ac3433494e6e651ab"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#9e562bad58e1ba316f193b2cba6309710d3b5898"
 dependencies = [
  "async-recursion",
  "async-trait",
@@ -2458,7 +2458,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-common"
 version = "0.1.0"
-source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#6637adfd100e91fd965f0e7ac3433494e6e651ab"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#9e562bad58e1ba316f193b2cba6309710d3b5898"
 dependencies = [
  "futures 0.3.21",
  "grpcio",
@@ -2474,7 +2474,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-pd"
 version = "0.1.0"
-source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#6637adfd100e91fd965f0e7ac3433494e6e651ab"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#9e562bad58e1ba316f193b2cba6309710d3b5898"
 dependencies = [
  "async-trait",
  "futures 0.3.21",
@@ -2487,7 +2487,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-proto"
 version = "0.1.0"
-source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#6637adfd100e91fd965f0e7ac3433494e6e651ab"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#9e562bad58e1ba316f193b2cba6309710d3b5898"
 dependencies = [
  "futures 0.3.21",
  "grpcio",
@@ -2501,7 +2501,7 @@ dependencies = [
 [[package]]
 name = "tikv-client-store"
 version = "0.1.0"
-source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#6637adfd100e91fd965f0e7ac3433494e6e651ab"
+source = "git+https://github.com/blacktear23/client-rust.git?branch=try-optimize#9e562bad58e1ba316f193b2cba6309710d3b5898"
 dependencies = [
  "async-trait",
  "derive-new",
