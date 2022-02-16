@@ -1,5 +1,5 @@
 pub use crate::init::GLOBAL_RT;
-use crate::init::GLOBAL_RT_FAST;
+use crate::init::{GLOBAL_RT_FAST, GLOBAL_RT_FAST2};
 use redis_module::{
     BlockedClient, Context, RedisValue, ThreadSafeContext,
     redisraw::bindings::RedisModule_GetClientId,
@@ -60,6 +60,8 @@ where
     };
 }
 
+static mut HANDLER_COUNTER: u64 = 0;
+
 // Spawn async task from Redis Module main thread
 pub fn tokio_spawn<T>(future: T)
 where
@@ -68,8 +70,18 @@ where
 {
     // let tmp = GLOBAL_RT.read().unwrap();
     // let hdl = tmp.as_ref().unwrap();
-    let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
-    hdl.spawn(future);
+    let idx: u64;
+    unsafe {
+        HANDLER_COUNTER += 1;
+        idx = HANDLER_COUNTER;
+    }
+    if idx % 2 == 0 {
+        let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
+        hdl.spawn(future);
+    } else {
+        let hdl = unsafe { GLOBAL_RT_FAST2.as_ref().unwrap() };
+        hdl.spawn(future);
+    }
 }
 
 pub fn get_client_id(ctx: &Context) -> u64 {

@@ -19,7 +19,7 @@ pub fn get_client() -> Result<RawClientWrapper, RTError> {
     let ret: RawClientWrapper;
     unsafe {
         CLIENT_COUNTER += 1;
-        idx = CLIENT_COUNTER
+        idx = CLIENT_COUNTER;
     }
     if idx % 2 == 0 {
         let client = unsafe {TIKV_RAW_CLIENT.as_ref().unwrap() };

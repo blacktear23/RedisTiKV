@@ -17,6 +17,7 @@ lazy_static! {
 }
 
 pub static mut GLOBAL_RT_FAST: Option<Box<Handle>> = None;
+pub static mut GLOBAL_RT_FAST2: Option<Box<Handle>> = None;
 
 // Initial tokio main executor in other thread
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
@@ -152,6 +153,34 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         println!("Tokio Runtime 1 Shutdown");
     });
 
+    thread::spawn(move || {
+        let runtime = Builder::new_multi_thread()
+            .enable_all()
+            .worker_threads(threads)
+            .build()
+            .unwrap();
+        // let runtime = Runtime::new().unwrap();
+        let handle = runtime.handle().clone();
+        unsafe {
+            GLOBAL_RT_FAST2.replace(Box::new(handle));
+        }
+        *GLOBAL_RUNNING.write().unwrap() = 1;
+        let tctx = ThreadSafeContext::new();
+        tctx.lock().log_notice("Tokio Runtime 2 Created");
+
+        runtime.block_on(async {
+            loop {
+                sleep(Duration::from_secs(1)).await;
+                if *GLOBAL_RUNNING.read().unwrap() == 0 {
+                    return;
+                }
+            }
+        });
+        println!("Tokio Runtime 2 Finished");
+        runtime.shutdown_timeout(Duration::from_secs(10));
+        println!("Tokio Runtime 2 Shutdown");
+    });
+
     if enable_prometheus_http {
         thread::spawn(move || {
             let runtime = Runtime::new().unwrap();
@@ -183,6 +212,13 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
             try_redis_command!(ctx, "get", tikv_raw_cached_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_raw_cached_set, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_raw_cached_del, "", 0, 0, 0);
+            try_redis_command!(ctx, "exists", tikv_raw_exists, "", 0, 0, 0);
+            try_redis_command!(ctx, "mget", tikv_raw_batch_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "mset", tikv_raw_batch_set, "", 0, 0, 0);
+        } else if replace_system_mode.eq("mock") {
+            try_redis_command!(ctx, "get", tikv_mock_get, "", 0, 0, 0);
+            try_redis_command!(ctx, "set", tikv_raw_set, "", 0, 0, 0);
+            try_redis_command!(ctx, "del", tikv_raw_del, "", 0, 0, 0);
             try_redis_command!(ctx, "exists", tikv_raw_exists, "", 0, 0, 0);
             try_redis_command!(ctx, "mget", tikv_raw_batch_get, "", 0, 0, 0);
             try_redis_command!(ctx, "mset", tikv_raw_batch_set, "", 0, 0, 0);
