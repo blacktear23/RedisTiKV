@@ -1,4 +1,4 @@
-use redis_module::{Context, RedisString, RedisResult, RedisError, NextArg, RedisValue, ThreadSafeContext, KeyType};
+use redis_module::{Context, RedisString, RedisResult, RedisError, NextArg, RedisValue};
 use crate::{
     utils::{tokio_spawn, redis_resp},
 };

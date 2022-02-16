@@ -5,10 +5,8 @@ extern crate lazy_static;
 #[macro_use]
 extern crate prometheus;
 
-extern crate etcd_client;
 extern crate hyper;
 extern crate reqwest;
-extern crate serde_json;
 extern crate tikv_client;
 extern crate tokio;
 extern crate gperftools;
