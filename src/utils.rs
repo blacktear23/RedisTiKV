@@ -1,14 +1,13 @@
-pub use crate::init::GLOBAL_RT;
-use crate::init::{GLOBAL_RT_FAST, GLOBAL_RT_FAST2};
+use crate::init::GLOBAL_RT_FAST;
 use redis_module::{
     BlockedClient, Context, RedisValue, ThreadSafeContext,
-    redisraw::bindings::RedisModule_GetClientId,
+    redisraw::bindings::RedisModule_GetClientId, RedisError,
 };
 use std::future::Future;
 use tokio::{
     io::{Error, ErrorKind},
     process::Command,
-    time::Duration,
+    time::Duration, task::JoinHandle,
 };
 
 pub fn resp_ok() -> RedisValue {
@@ -35,11 +34,11 @@ where
     let ctx = ThreadSafeContext::with_blocked_client(client);
     match result {
         Ok(data) => {
-            ctx.lock().reply(Ok(data.into()));
+            ctx.reply(Ok(data.into()));
         }
         Err(err) => {
             let err_msg = format!("{}", err);
-            ctx.lock().reply_error_string(&err_msg);
+            ctx.reply(Err(RedisError::String(err_msg)));
         }
     };
 }
@@ -51,37 +50,28 @@ where
 {
     match result {
         Ok(data) => {
-            ctx.lock().reply(Ok(data.into()));
+            ctx.reply(Ok(data.into()));
         }
         Err(err) => {
             let err_msg = format!("{}", err);
-            ctx.lock().reply_error_string(&err_msg);
+            ctx.reply(Err(RedisError::String(err_msg)));
         }
     };
 }
 
-static mut HANDLER_COUNTER: u64 = 0;
-
 // Spawn async task from Redis Module main thread
-pub fn tokio_spawn<T>(future: T)
+pub fn tokio_spawn<T>(future: T) -> JoinHandle<T::Output>
 where
     T: Future + Send + 'static,
     T::Output: Send + 'static,
 {
-    // let tmp = GLOBAL_RT.read().unwrap();
-    // let hdl = tmp.as_ref().unwrap();
-    let idx: u64;
-    unsafe {
-        HANDLER_COUNTER += 1;
-        idx = HANDLER_COUNTER;
-    }
-    if idx % 2 == 0 {
-        let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
-        hdl.spawn(future);
-    } else {
-        let hdl = unsafe { GLOBAL_RT_FAST2.as_ref().unwrap() };
-        hdl.spawn(future);
-    }
+    let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
+    hdl.spawn(future)
+}
+
+pub fn tokio_block_on<F: Future>(future: F) -> F::Output {
+    let hdl = unsafe { GLOBAL_RT_FAST.as_ref().unwrap() };
+    hdl.block_on(future)
 }
 
 pub fn get_client_id(ctx: &Context) -> u64 {

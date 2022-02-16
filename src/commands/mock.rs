@@ -7,7 +7,7 @@ use crate::{
     utils::sleep,
 };
 
-async fn do_async_mock_get(key: &str) -> AsyncResult<RedisValue> {
+async fn do_async_mock_get(_key: &str) -> AsyncResult<RedisValue> {
     sleep(1).await;
     Ok("Mock Value".into())
 }
