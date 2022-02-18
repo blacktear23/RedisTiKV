@@ -24,6 +24,7 @@ impl RawClientWrapper {
             Error::RegionError(_) => true,
             Error::EntryNotFoundInRegionCache => true,
             Error::KvError { message: _ } => true,
+            Error::MultipleKeyErrors(_) => true,
             _ => false,
         }
     }
