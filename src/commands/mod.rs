@@ -12,6 +12,7 @@ pub mod hash;
 pub mod list;
 pub mod admin;
 pub mod set;
+pub mod mock;
 
 lazy_static! {
     pub static ref PD_ADDRS: Arc<RwLock<Option<Vec<String>>>> = Arc::new(RwLock::new(None));
@@ -22,6 +23,7 @@ lazy_static! {
 }
 
 pub static mut TIKV_RAW_CLIENT: Option<RawClient> = None;
+pub static mut TIKV_RAW_CLIENT_2: Option<RawClient> = None;
 
 pub static mut INSTANCE_ID: u64 = 0;
 
@@ -61,5 +63,8 @@ pub use crate::commands::{
     },
     set::{
         tikv_sadd, tikv_scard, tikv_smembers,
-    }
+    },
+    mock::{
+        tikv_mock_get,
+    },
 };
