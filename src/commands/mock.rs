@@ -1,6 +1,6 @@
 use redis_module::{Context, RedisString, RedisResult, RedisError, NextArg, RedisValue};
 use crate::{
-    utils::{tokio_spawn, redis_resp},
+    utils::{tokio_spawn, redis_resp, tokio_block_on},
 };
 use crate::{
     commands::errors::AsyncResult,
@@ -8,7 +8,6 @@ use crate::{
 };
 
 async fn do_async_mock_get(_key: &str) -> AsyncResult<RedisValue> {
-    sleep(1).await;
     Ok("Mock Value".into())
 }
 
@@ -20,9 +19,10 @@ pub fn tikv_mock_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let key = args.next_str()?;
 
     let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_mock_get(key).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    match tokio_block_on(async move {
+        do_async_mock_get(key).await
+    }) {
+        Ok(val) => Ok(val),
+        Err(err) => Err(RedisError::String(err.to_string())),
+    }
 }
