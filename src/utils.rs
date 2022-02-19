@@ -25,6 +25,7 @@ pub async fn sleep(ms: u32) {
 }
 
 // Response for redis blocked client
+#[inline]
 pub fn redis_resp(client: BlockedClient, result: AsyncResult<RedisValue>) {
     let ctx = ThreadSafeContext::with_blocked_client(client);
     match result {
