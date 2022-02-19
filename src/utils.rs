@@ -1,12 +1,10 @@
-use crate::init::GLOBAL_RT_FAST;
+use crate::{init::{GLOBAL_RT_FAST, ASYNC_EXECUTE_MODE}, commands::errors::AsyncResult};
 use redis_module::{
     BlockedClient, Context, RedisValue, ThreadSafeContext,
-    redisraw::bindings::RedisModule_GetClientId, RedisError,
+    redisraw::bindings::RedisModule_GetClientId, RedisError, RedisResult, RedisModule_GetContextFlags, REDISMODULE_CTX_FLAGS_LUA,
 };
 use std::future::Future;
 use tokio::{
-    io::{Error, ErrorKind},
-    process::Command,
     time::Duration, task::JoinHandle,
 };
 
@@ -27,10 +25,7 @@ pub async fn sleep(ms: u32) {
 }
 
 // Response for redis blocked client
-pub fn redis_resp<E>(client: BlockedClient, result: Result<RedisValue, E>)
-where
-    E: std::error::Error,
-{
+pub fn redis_resp(client: BlockedClient, result: AsyncResult<RedisValue>) {
     let ctx = ThreadSafeContext::with_blocked_client(client);
     match result {
         Ok(data) => {
@@ -44,10 +39,7 @@ where
 }
 
 // Response for redis blocked client
-pub fn redis_resp_with_ctx<E>(ctx: &ThreadSafeContext<BlockedClient>, result: Result<RedisValue, E>)
-where
-    E: std::error::Error,
-{
+pub fn redis_resp_with_ctx(ctx: &ThreadSafeContext<BlockedClient>, result: AsyncResult<RedisValue>) {
     match result {
         Ok(data) => {
             ctx.reply(Ok(data.into()));
@@ -74,10 +66,48 @@ pub fn tokio_block_on<F: Future>(future: F) -> F::Output {
     hdl.block_on(future)
 }
 
+#[inline]
+fn is_block(ctx: &Context) -> bool {
+    let block = !unsafe { ASYNC_EXECUTE_MODE };
+    let flags = get_context_flags(ctx);
+    if (flags & REDISMODULE_CTX_FLAGS_LUA) == 1 {
+        return true;
+    }
+    block
+}
+
+pub fn async_execute<F>(ctx: &Context, future: F) -> RedisResult 
+where
+    F: Future<Output = AsyncResult<RedisValue>> + Send + 'static,
+{
+    if is_block(ctx) {
+        return match tokio_block_on(future) {
+            Ok(val) => Ok(val),
+            Err(err) => {
+                let err_msg = format!("{}", err);
+                Err(RedisError::String(err_msg))
+            }
+        }
+    }
+    let blocked_client = ctx.block_client();
+    tokio_spawn(async move {
+        let res = future.await;
+        redis_resp(blocked_client, res);
+    });
+    Ok(RedisValue::NoReply)
+}
+
+#[inline]
 pub fn get_client_id(ctx: &Context) -> u64 {
     unsafe { RedisModule_GetClientId.unwrap()(ctx.get_raw()) }
 }
 
+#[inline]
+pub fn get_context_flags(ctx: &Context) -> u32 {
+    unsafe { RedisModule_GetContextFlags.unwrap()(ctx.get_raw()) as u32 }
+}
+
+/* 
 pub async fn proc_exec(command: String, args: Vec<String>) -> Result<String, Error> {
     let output = Command::new(command).args(&args).output().await?;
     match String::from_utf8(output.stdout) {
@@ -85,6 +115,7 @@ pub async fn proc_exec(command: String, args: Vec<String>) -> Result<String, Err
         Err(err) => Err(Error::new(ErrorKind::Other, err.to_string())),
     }
 }
+*/
 
 // Try to register a redis command, if got error, just log a warning.
 #[macro_export]

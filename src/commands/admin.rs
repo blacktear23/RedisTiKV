@@ -1,8 +1,8 @@
 use crate::{
     commands::asyncs::admin::*,
-    utils::{redis_resp, tokio_spawn},
+    utils::async_execute,
 };
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString};
 use tikv_client::{ColumnFamily, Error};
 
 pub fn tikv_rawkv_dscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -20,18 +20,14 @@ pub fn tikv_rawkv_dscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let limit = args.next_u64()?;
 
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
+    async_execute(ctx, async move {
         let cf = ColumnFamily::Default;
         if num_args == 3 {
-            let res = do_async_rawkv_ascan(cf, start_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan(cf, start_key, limit).await
         } else {
-            let res = do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await
         }
-    });
-    Ok(RedisValue::NoReply)
+    })
 }
 
 pub fn tikv_rawkv_wscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -49,18 +45,14 @@ pub fn tikv_rawkv_wscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let limit = args.next_u64()?;
 
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
+    async_execute(ctx, async move {
         let cf = ColumnFamily::Write;
         if num_args == 3 {
-            let res = do_async_rawkv_ascan(cf, start_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan(cf, start_key, limit).await
         } else {
-            let res = do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await
         }
-    });
-    Ok(RedisValue::NoReply)
+    })
 }
 
 pub fn tikv_rawkv_lscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -78,18 +70,14 @@ pub fn tikv_rawkv_lscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let limit = args.next_u64()?;
 
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
+    async_execute(ctx, async move {
         let cf = ColumnFamily::Lock;
         if num_args == 3 {
-            let res = do_async_rawkv_ascan(cf, start_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan(cf, start_key, limit).await
         } else {
-            let res = do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await
         }
-    });
-    Ok(RedisValue::NoReply)
+    })
 }
 
 fn convert_to_column_family(cf_str: &str) -> Result<ColumnFamily, Error> {
@@ -121,16 +109,13 @@ pub fn tikv_rawkv_cfscan(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         end_key = "";
     }
     let limit = args.next_u64()?;
-    let blocked_client = ctx.block_client();
     let cf = convert_to_column_family(cf_str)?;
-    tokio_spawn(async move {
+
+    async_execute(ctx, async move {
         if num_args == 3 {
-            let res = do_async_rawkv_ascan(cf, start_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan(cf, start_key, limit).await
         } else {
-            let res = do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await;
-            redis_resp(blocked_client, res);
+            do_async_rawkv_ascan_range(cf, start_key, end_key, limit).await
         }
-    });
-    Ok(RedisValue::NoReply)
+    })
 }

@@ -1,8 +1,8 @@
 use crate::{
-    utils::{redis_resp, resp_sstr, tokio_spawn},
+    utils::{resp_sstr, async_execute},
     commands::asyncs::connection::*,
 };
-use redis_module::{Context, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, RedisError, RedisResult, RedisString};
 
 use super::PD_ADDRS;
 
@@ -21,20 +21,13 @@ pub fn tikv_connect(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         addrs = args.into_iter().skip(1).map(|s| s.to_string()).collect();
     }
 
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_connect(addrs).await;
-        redis_resp(blocked_client, res);
-    });
-
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_connect(addrs).await
+    })
 }
 
 pub fn tikv_close(ctx: &Context, _args: Vec<RedisString>) -> RedisResult {
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_close().await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_close().await
+    })
 }

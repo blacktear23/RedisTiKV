@@ -16,6 +16,7 @@ lazy_static! {
 }
 
 pub static mut GLOBAL_RT_FAST: Option<Box<Handle>> = None;
+pub static mut ASYNC_EXECUTE_MODE: bool = true;
 
 // Initial tokio main executor in other thread
 pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
@@ -30,6 +31,7 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
         let mut start_instance_id = false;
         let mut start_threads = false;
         let mut start_replace_system = false;
+        let mut start_execute_mode = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -83,6 +85,23 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                     Err(_) => {}
                 };
                 start_threads = false;
+            }
+            if ss == "execmode" {
+                start_execute_mode = true;
+                return
+            }
+            if start_execute_mode {
+                start_execute_mode = false;
+                let exec_mode = ss.clone();
+                if exec_mode.eq("sync") {
+                    unsafe {
+                        ASYNC_EXECUTE_MODE = false;
+                    }
+                } else {
+                    unsafe {
+                        ASYNC_EXECUTE_MODE = true;
+                    }
+                }
             }
         });
     }
