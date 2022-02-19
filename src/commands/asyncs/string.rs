@@ -204,3 +204,42 @@ pub async fn do_async_rawkv_batch_put(kvs: Vec<KvPair>) -> AsyncResult<RedisValu
     let _ = client.batch_put(kvs).await?;
     Ok(resp_int(num_keys as i64))
 }
+
+pub async fn do_async_rawkv_expire(key: String, ttl: u64) ->AsyncResult<RedisValue> {
+    let client = get_client()?;
+    let ekey = KeyEncoder::new().encode_string(&key.clone());
+    let mut swapped = false;
+    for i in 0..2000 {
+        let prev_val = client.get(ekey.clone()).await?;
+        println!("FUCK: {:?}", prev_val);
+        if prev_val.is_none() {
+            return Err(RTError::StringError(String::from("Cannot set expire with key not exists")));
+        }
+        let (val, ret) = client.compare_and_swap_with_ttl(ekey.clone(), prev_val.clone(), prev_val.clone().unwrap(), ttl).await?;
+        println!("{:?}, {:?}", val, ret);
+        if ret {
+            swapped = true;
+            break;
+        } else {
+            if let Some(data) = val {
+                if data.eq(&prev_val.unwrap()) {
+                    swapped = true;
+                    break;
+                }
+            } 
+        }
+        sleep(std::cmp::min(i, 200)).await;
+    }
+    if !swapped {
+        Err(RTError::StringError(String::from("Cannot swapped")))
+    } else {
+        Ok(resp_int(1))
+    }
+}
+
+pub async fn do_async_rawkv_get_ttl(key: String) -> AsyncResult<RedisValue> {
+    let client = get_client()?;
+    let ekey = KeyEncoder::new().encode_string(&key);
+    let val = client.get_ttl(ekey).await?;
+    Ok(resp_int(val as i64))    
+}

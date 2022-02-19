@@ -45,7 +45,7 @@ pub use crate::commands::{
         tikv_raw_cached_del, tikv_raw_cached_get, tikv_raw_cached_set,
         tikv_raw_incr, tikv_raw_incrby, tikv_raw_decr, tikv_raw_decrby,
         tikv_raw_exists, tikv_raw_batch_get, tikv_raw_batch_set,
-        tikv_raw_scan, tikv_redis_set,
+        tikv_raw_scan, tikv_redis_set, tikv_raw_expire, tikv_raw_ttl,
     },
     profiler::{
         tikv_profile_start, tikv_profile_finish,
