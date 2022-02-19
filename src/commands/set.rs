@@ -1,9 +1,9 @@
 use crate::{
     metrics::*,
     commands::asyncs::set::*,
-    utils::{redis_resp, tokio_spawn},
+    utils::async_execute,
 };
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString};
 
 pub fn tikv_sadd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     REQUEST_COUNTER.inc();
@@ -14,12 +14,9 @@ pub fn tikv_sadd(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
     let members = args.map(|x| x.to_string_lossy()).collect();
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_sadd(key, members).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_sadd(key, members).await
+    })
 }
 
 pub fn tikv_scard(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -30,12 +27,9 @@ pub fn tikv_scard(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_scard(key).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_scard(key).await
+    })
 }
 
 pub fn tikv_smembers(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -46,10 +40,7 @@ pub fn tikv_smembers(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_smembers(key).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_smembers(key).await
+    })
 }

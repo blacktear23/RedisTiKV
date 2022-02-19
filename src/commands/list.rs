@@ -2,9 +2,9 @@ use std::str::FromStr;
 use crate::{
     metrics::*,
     commands::asyncs::list::*,
-    utils::{redis_resp, tokio_spawn},
+    utils::async_execute,
 };
-use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString, RedisValue};
+use redis_module::{Context, NextArg, RedisError, RedisResult, RedisString};
 
 pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     REQUEST_COUNTER.inc();
@@ -14,17 +14,14 @@ pub fn tikv_lpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
     let elements = args.map(|x| x.to_string_lossy()).collect();
     ctx.log_debug(&format!(
         "Handle tikv_lpush commands, key: {}, elements: {:?}",
         key, elements
     ));
-    tokio_spawn(async move {
-        let res = do_async_push(key, elements, ListDirection::Left).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_push(key, elements, ListDirection::Left).await
+    })
 }
 
 pub fn tikv_lrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -41,12 +38,9 @@ pub fn tikv_lrange(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         "Handle tikv_lrange commands, key: {}, start: {}, end: {}",
         key, start, end
     ));
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_lrange(key, start, end).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_lrange(key, start, end).await
+    })
 }
 
 pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -57,17 +51,14 @@ pub fn tikv_rpush(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
     let elements = args.map(|x| x.to_string_lossy()).collect();
     ctx.log_debug(&format!(
         "Handle tikv_lpush commands, key: {}, elements: {:?}",
         key, elements
     ));
-    tokio_spawn(async move {
-        let res = do_async_push(key, elements, ListDirection::Right).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_push(key, elements, ListDirection::Right).await
+    })
 }
 
 pub fn tikv_llen(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -78,13 +69,10 @@ pub fn tikv_llen(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
     ctx.log_debug(&format!("Handle tikv_llen commands, key: {}", key));
-    tokio_spawn(async move {
-        let res = do_async_llen(key).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_llen(key).await
+    })
 }
 
 pub fn tikv_lpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -102,16 +90,13 @@ pub fn tikv_lpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if count < 0 {
         return Err(RedisError::Str("value is out of range, must be positive"));
     }
-    let blocked_client = ctx.block_client();
     ctx.log_debug(&format!(
         "Handle tikv_lpop commands, key: {}, count: {}",
         key, count
     ));
-    tokio_spawn(async move {
-        let res = do_async_pop(key, count, ListDirection::Left).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_pop(key, count, ListDirection::Left).await
+    })
 }
 
 pub fn tikv_rpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -129,16 +114,13 @@ pub fn tikv_rpop(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     if count < 0 {
         return Err(RedisError::Str("value is out of range, must be positive"));
     }
-    let blocked_client = ctx.block_client();
     ctx.log_debug(&format!(
         "Handle tikv_lpop commands, key: {}, count: {}",
         key, count
     ));
-    tokio_spawn(async move {
-        let res = do_async_pop(key, count, ListDirection::Right).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_pop(key, count, ListDirection::Right).await
+    })
 }
 
 pub fn tikv_lindex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -157,12 +139,9 @@ pub fn tikv_lindex(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
         "Handle tikv_lindex commands, key: {}, index: {}",
         key, index
     ));
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_lindex(key, index).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_lindex(key, index).await
+    })
 }
 
 pub fn tikv_ldel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
@@ -173,12 +152,9 @@ pub fn tikv_ldel(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
     }
     let mut args = args.into_iter().skip(1);
     let key = args.next_str()?;
-    let blocked_client = ctx.block_client();
-    tokio_spawn(async move {
-        let res = do_async_ldel(key).await;
-        redis_resp(blocked_client, res);
-    });
-    Ok(RedisValue::NoReply)
+    async_execute(ctx, async move {
+        do_async_ldel(key).await
+    })
 }
 
 /*

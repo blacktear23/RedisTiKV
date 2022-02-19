@@ -46,6 +46,8 @@ redis_module! {
         ["tikv.mget", tikv_raw_batch_get, "", 0, 0, 0],
         ["tikv.mset", tikv_raw_batch_set, "", 0, 0, 0],
         ["tikv.redis_set", tikv_redis_set, "", 0, 0, 0],
+        ["tikv.expire", tikv_raw_expire, "", 0, 0, 0],
+        ["tikv.ttl", tikv_raw_ttl, "", 0, 0, 0],
         // Cached String Commands
         ["tikv.cget", tikv_raw_cached_get, "", 0, 0, 0],
         ["tikv.cset", tikv_raw_cached_set, "", 0, 0, 0],
