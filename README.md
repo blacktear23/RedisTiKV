@@ -63,13 +63,14 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 ## Module Parameters
 
 ```
-module load libredistikv.so [replacesys (cache|nocache)] [pdaddrs PD_ADDR1,PD_ADDR2] [instanceid INSTANCE_ID] [enablepromhttp]
+module load libredistikv.so [replacesys (cache|nocache)] [execmode (async|sync)] [pdaddrs PD_ADDR1,PD_ADDR2] [instanceid INSTANCE_ID] [enablepromhttp]
 ```
 
 * replacesys: replace system command with cache(or nocache) mode. If add this parameter RedisTiKV will try to add GET, SET command using TIKV.GET, TIKV.SET
 * enablepromhttp: will start a HTTP server listen to `127.0.0.1:9898` for expose prometheus metrics data.
 * pdaddrs: connect to TiKV with followed PD addresses when module loaded. Many address separated by `,`
 * instanceid: instance id, followed with a number. It will encoded as uint64 and add to the key prefix to support multi user.
+* execmode: async means execute TiKV query in async mode, sync means in block mode. Default is async mode.
 
 ## Benchmark
 

@@ -191,29 +191,32 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     }
 
     if replace_system {
+        let replace_default: bool;
         if replace_system_mode.eq("nocache") {
+            replace_default = true;
             try_redis_command!(ctx, "get", tikv_raw_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_raw_set, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_raw_del, "", 0, 0, 0);
-            try_redis_command!(ctx, "exists", tikv_raw_exists, "", 0, 0, 0);
-            try_redis_command!(ctx, "mget", tikv_raw_batch_get, "", 0, 0, 0);
-            try_redis_command!(ctx, "mset", tikv_raw_batch_set, "", 0, 0, 0);
         } else if replace_system_mode.eq("cache") {
+            replace_default = true;
             try_redis_command!(ctx, "get", tikv_raw_cached_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_raw_cached_set, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_raw_cached_del, "", 0, 0, 0);
-            try_redis_command!(ctx, "exists", tikv_raw_exists, "", 0, 0, 0);
-            try_redis_command!(ctx, "mget", tikv_raw_batch_get, "", 0, 0, 0);
-            try_redis_command!(ctx, "mset", tikv_raw_batch_set, "", 0, 0, 0);
         } else if replace_system_mode.eq("mock") {
+            replace_default = true;
             try_redis_command!(ctx, "get", tikv_mock_get, "", 0, 0, 0);
             try_redis_command!(ctx, "set", tikv_raw_set, "", 0, 0, 0);
             try_redis_command!(ctx, "del", tikv_raw_del, "", 0, 0, 0);
+        } else {
+            replace_default = false;
+            ctx.log_notice(&format!("Unknown Replace System Mode"))
+        }
+        if replace_default {
             try_redis_command!(ctx, "exists", tikv_raw_exists, "", 0, 0, 0);
             try_redis_command!(ctx, "mget", tikv_raw_batch_get, "", 0, 0, 0);
             try_redis_command!(ctx, "mset", tikv_raw_batch_set, "", 0, 0, 0);
-        } else {
-            ctx.log_notice(&format!("Unknown Replace System Mode"))
+            try_redis_command!(ctx, "incr", tikv_raw_incr, "", 0, 0, 0);
+            try_redis_command!(ctx, "decr", tikv_raw_decr, "", 0, 0, 0);
         }
     }
     Status::Ok

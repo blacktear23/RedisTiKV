@@ -3,10 +3,14 @@ use redis_module::{
     BlockedClient, Context, RedisValue, ThreadSafeContext,
     redisraw::bindings::RedisModule_GetClientId, RedisError, RedisResult, RedisModule_GetContextFlags, REDISMODULE_CTX_FLAGS_LUA,
 };
-use std::future::Future;
+use std::{future::Future, sync::Arc};
 use tokio::{
-    time::Duration, task::JoinHandle,
+    time::Duration, task::JoinHandle, sync::RwLock,
 };
+
+lazy_static! {
+    static ref LUA_SCRIPT_LOCK: Arc<RwLock<()>> = Arc::new(RwLock::new(()));
+}
 
 pub fn resp_ok() -> RedisValue {
     RedisValue::SimpleStringStatic("OK")
@@ -25,6 +29,7 @@ pub async fn sleep(ms: u32) {
 }
 
 // Response for redis blocked client
+#[inline]
 pub fn redis_resp(client: BlockedClient, result: AsyncResult<RedisValue>) {
     let ctx = ThreadSafeContext::with_blocked_client(client);
     match result {
@@ -67,21 +72,34 @@ pub fn tokio_block_on<F: Future>(future: F) -> F::Output {
 }
 
 #[inline]
-fn is_block(ctx: &Context) -> bool {
+fn is_block(ctx: &Context) -> (bool, bool) {
     let block = !unsafe { ASYNC_EXECUTE_MODE };
     let flags = get_context_flags(ctx);
     if (flags & REDISMODULE_CTX_FLAGS_LUA) == 1 {
-        return true;
+        return (true, true);
     }
-    block
+    (block, false)
 }
 
 pub fn async_execute<F>(ctx: &Context, future: F) -> RedisResult 
 where
     F: Future<Output = AsyncResult<RedisValue>> + Send + 'static,
 {
-    if is_block(ctx) {
-        return match tokio_block_on(future) {
+    let (sync_mode, in_script) = is_block(ctx);
+    if sync_mode {
+        let ret: AsyncResult<RedisValue>;
+        if in_script {
+            ret = tokio_block_on(async move {
+                let _guard = LUA_SCRIPT_LOCK.write();
+                future.await
+            })
+        } else {
+            ret = tokio_block_on(async move {
+                let _guard = LUA_SCRIPT_LOCK.read();
+                future.await
+            })
+        }
+        return match ret {
             Ok(val) => Ok(val),
             Err(err) => {
                 let err_msg = format!("{}", err);
@@ -91,6 +109,7 @@ where
     }
     let blocked_client = ctx.block_client();
     tokio_spawn(async move {
+        let _guard = LUA_SCRIPT_LOCK.read();
         let res = future.await;
         redis_resp(blocked_client, res);
     });
