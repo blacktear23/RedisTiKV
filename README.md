@@ -113,9 +113,9 @@ So if running Lua Script using RedisTiKV commands will block other commands exec
 
 #### About Redis 7.0
 
-After Redis 7.0 module will check the replaced command's name and origin name, and this will make the RedisTiKV module loading fail. We can just change `module.c` for one line code to make RedisTiKV support. `[reference](https://github.com/blacktear23/redis/commit/cb98efae7182b28486d84931a41e66034d8d799a#diff-6109c354d7e009093f811238069b581bcb9bdbfc638d7d089814031776801632L986)`
+After Redis 7.0 module will check the replaced command's name and origin name, and this will make the RedisTiKV module loading fail. We can just change `module.c` for one line code to make RedisTiKV support. [reference](https://github.com/blacktear23/redis/commit/cb98efae7182b28486d84931a41e66034d8d799a#diff-6109c354d7e009093f811238069b581bcb9bdbfc638d7d089814031776801632L986)
 
-And Redis 7.0 is including a PR that can make blocked client process more faster than old version.
+And Redis 7.0 is including a [PR](https://github.com/redis/redis/pull/10001) that can make blocked client process more faster than old version.
 
 ## About Key Encoding
 
