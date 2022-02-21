@@ -58,6 +58,8 @@ After build the module you can use Redis `MODULE LOAD` command load it.
 * tikv.cset [KEY] [VALUE]: Put a Key-Value pair into TiKV, if successed, then put it into Redis.
 * tikv.cdel [KEY1] [KEY2]..: Delete key data from Redis cache first and then delete it from TiKV.
 * tikv.status: Get metrics info from RedisTiKV module.
+* tikv.ttl [KEY]: Get Key's TTL
+* tikv.expire [KEY] [SECONDS]: Set Key's TTL
 
 
 ## Module Parameters
