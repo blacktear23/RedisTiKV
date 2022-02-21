@@ -101,7 +101,21 @@ Then the `GET` and `SET` command is replaced by `TIKV.GET` and `TIKV.SET`.
 * MSET
 * MGET
 * EXISTS
+* INCR
+* DECR
 * DEL
+
+#### Lua Script Support
+
+When Lua Script calling RedisTiKV commands, RedisTiKV will switch this commands execute mode from `async` to `sync` then Lua Script can running correctly. And if the commands executing in Lua Script it will also wait other async commands finish.
+
+So if running Lua Script using RedisTiKV commands will block other commands executes to make sure atomic. And the performance will drop when Lua Script is running.
+
+#### About Redis 7.0
+
+After Redis 7.0 module will check the replaced command's name and origin name, and this will make the RedisTiKV module loading fail. We can just change `module.c` for one line code to make RedisTiKV support. `[reference](https://github.com/blacktear23/redis/commit/cb98efae7182b28486d84931a41e66034d8d799a#diff-6109c354d7e009093f811238069b581bcb9bdbfc638d7d089814031776801632L986)`
+
+And Redis 7.0 is including a PR that can make blocked client process more faster than old version.
 
 ## About Key Encoding
 
