@@ -1,5 +1,6 @@
 use crate::commands::asyncs::connection::{do_async_txn_connect, do_async_raw_connect, do_async_close};
 use crate::metrics::prometheus_server;
+use crate::server::self_server;
 use crate::{
     commands::*,
     metrics::INSTANCE_ID_GAUGER,
@@ -26,12 +27,15 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
     let mut pd_addrs: String = String::from("");
     let mut enable_prometheus_http: bool = false;
     let mut threads: usize = 32;
+    let mut enable_self_server: bool = false;
+    let mut self_server_port: u16 = 0;
     if args.len() > 0 {
         let mut start_pd_addrs = false;
         let mut start_instance_id = false;
         let mut start_threads = false;
         let mut start_replace_system = false;
         let mut start_execute_mode = false;
+        let mut start_self_server = false;
         args.into_iter().for_each(|s| {
             let ss = s.to_string();
             if ss == "replacesys" {
@@ -102,6 +106,21 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                         ASYNC_EXECUTE_MODE = true;
                     }
                 }
+            }
+            if ss == "selfserver" {
+                enable_self_server = true;
+                start_self_server = true;
+                return
+            }
+            if start_self_server {
+                let port = ss.clone();
+                match port.parse::<u64>() {
+                    Ok(val) => {
+                        self_server_port = val as u16;
+                    }
+                    Err(_) => {}
+                };
+                start_self_server = false;
             }
         });
     }
@@ -186,6 +205,25 @@ pub fn tikv_init(ctx: &Context, args: &Vec<RedisString>) -> Status {
                             .log_notice(&format!("Prometheus Server Stopped with Error: {:}", err));
                     }
                 };
+            });
+        });
+    }
+
+    if enable_self_server {
+        thread::spawn(move || {
+            let runtime = Runtime::new().unwrap();
+            let tctx = ThreadSafeContext::new();
+            tctx.lock().log_notice("Tokio Runtime Self Server Created");
+            runtime.block_on(async {
+                match self_server(self_server_port).await {
+                    Ok(()) => {
+                        tctx.lock().log_notice("Self Server Stopped");
+                    }
+                    Err(err) => {
+                        tctx.lock()
+                            .log_notice(&format!("Self Server Stopped with Error: {:}", err));
+                    }
+                }
             });
         });
     }

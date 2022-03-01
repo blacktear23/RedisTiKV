@@ -17,3 +17,5 @@ prometheus = "0.13.0"
 hyper = { version = "0.14.17", features = ["full"] }
 gperftools = "0.2.0"
 thiserror = "1"
+bytes = "1"
+atoi = "0.3.2"

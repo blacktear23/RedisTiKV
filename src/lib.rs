@@ -11,6 +11,8 @@ extern crate tikv_client;
 extern crate tokio;
 extern crate gperftools;
 extern crate thiserror;
+extern crate bytes;
+extern crate atoi;
 
 mod init;
 mod encoding;
@@ -18,6 +20,7 @@ mod utils;
 mod client;
 mod commands;
 mod metrics;
+mod server;
 
 use init::{tikv_deinit, tikv_init};
 use commands::*;

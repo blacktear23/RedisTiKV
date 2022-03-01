@@ -64,6 +64,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "atoi"
+version = "0.3.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5c897df197d57c25b37df9d8fa2f93ddbfeee9ebd2264350ac79c8ec4b795885"
+dependencies = [
+ "num-traits 0.2.14",
+]
+
+[[package]]
 name = "atty"
 version = "0.2.14"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1375,6 +1384,8 @@ dependencies = [
 name = "redistikv"
 version = "99.99.99"
 dependencies = [
+ "atoi",
+ "bytes",
  "gperftools",
  "hyper",
  "lazy_static",
