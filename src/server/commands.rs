@@ -22,10 +22,11 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
             conn.write_frame(&err_frame).await?;
         }
     }
+    parse.finish()?;
     Ok(())
 }
 
-async fn cmd_get(parse: &mut Parse, conn: &mut Connection) -> Result<Frame> {
+async fn cmd_get(parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
     let key = parse.next_string()?;
     let client = get_client()?;
     let ekey = KeyEncoder::new().encode_string(&key);
@@ -36,7 +37,7 @@ async fn cmd_get(parse: &mut Parse, conn: &mut Connection) -> Result<Frame> {
     }
 }
 
-async fn cmd_set(parse: &mut Parse, conn: &mut Connection) -> Result<Frame> {
+async fn cmd_set(parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
     let key = parse.next_string()?;
     let value = parse.next_bytes()?;
     let client = get_client()?;
@@ -49,6 +50,7 @@ async fn cmd_set(parse: &mut Parse, conn: &mut Connection) -> Result<Frame> {
     } 
 }
 
-async fn cmd_unknown(cmd: String, _parse: &mut Parse, conn: &mut Connection) -> Result<Frame> {
+async fn cmd_unknown(cmd: String, _parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
+    println!("Err Unknown Command {}", &cmd);
     Err(format!("Unknown Command {}", cmd).into())
 }
