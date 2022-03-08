@@ -1,5 +1,6 @@
 use crate::server::frame::{self, Frame};
 
+use atoi::atoi;
 use bytes::{Buf, BytesMut};
 use std::io::{self, Cursor};
 use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter};
@@ -39,7 +40,7 @@ impl Connection {
             // this is fine. However, real applications will want to tune this
             // value to their specific use case. There is a high likelihood that
             // a larger read buffer will work better.
-            buffer: BytesMut::with_capacity(4 * 1024),
+            buffer: BytesMut::with_capacity(32 * 1024),
         }
     }
 
@@ -58,8 +59,18 @@ impl Connection {
         loop {
             // Attempt to parse a frame from the buffered data. If enough data
             // has been buffered, the frame is returned.
-            if let Some(frame) = self.parse_frame()? {
-                return Ok(Some(frame));
+            // if let Some(frame) = self.parse_frame()? {
+            //     return Ok(Some(frame));
+            // }
+            let mut print_buffer = false;
+            match self.parse_frame()? {
+                Some(frame) => return Ok(Some(frame)),
+                None => {
+                    if !self.buffer.is_empty() {
+                        println!("Buffer not Empty: {:?}", &self.buffer);
+                        print_buffer = true;
+                    }
+                }
             }
 
             // There is not enough buffered data to read a frame. Attempt to
@@ -73,12 +84,126 @@ impl Connection {
                 // there is, this means that the peer closed the socket while
                 // sending a frame.
                 if self.buffer.is_empty() {
+                    if print_buffer {
+                        println!("Fucking BUG!");
+                        return Err("BUG!".into());
+                    }
+                    println!("Buffer Empty, return None");
                     return Ok(None);
                 } else {
+                    println!("Connection reset by peer");
                     return Err("connection reset by peer".into());
                 }
             }
+            if print_buffer {
+                println!("New Buffer: {:?}", &self.buffer);
+            }
         }
+    }
+
+    pub async fn read_request(&mut self) -> Result<Option<Frame>> {
+        let mut start_buf = [0; 4096];
+        let size = self.read_line(&mut start_buf).await?;
+        // println!("Request First Line {:?}", &start_buf[0..size]);
+        if size == 0 || start_buf[0] != b'*' {
+            return Err("Invalid Protocol1".into());
+        }
+        let line = &start_buf[1..size-2];
+        let arr_len = atoi::<u64>(line);
+        if arr_len.is_none() {
+            return Err("Invalid Protocol2".into());
+        }
+        let mut frame = Frame::array();
+        if arr_len.unwrap() == 0 {
+            return Ok(None);
+        }
+        for _i in 0..arr_len.unwrap() {
+            match self.read_array_item().await? {
+                Frame::Bulk(data) => {
+                    frame.push_bulk(data);
+                }
+                Frame::Integer(data) => {
+                    frame.push_int(data);
+                }
+                Frame::Error(err) => {
+                    return Err(err.into());
+                }
+                _ => {}
+            }
+        }
+        Ok(Some(frame))
+    }
+
+    async fn read_array_item(&mut self) -> Result<Frame> {
+        let mut item_buf = [0; 4096];
+        let size = self.read_line(&mut item_buf).await?;
+        if size == 0 {
+            return Err("Invalid Protocol3".into());
+        }
+        match item_buf[0] {
+            b'+' => {
+                // Simple String
+                Ok(Frame::Simple(String::from_utf8_lossy(&item_buf[1..size-2].to_vec()).to_string()))
+            }
+            b':' => {
+                // Integer
+                let line = &item_buf[1..size-2];
+                let number = atoi::<i64>(line);
+                match number {
+                    Some(num) => Ok(Frame::Integer(num)),
+                    None => Err(format!("protocol error; invalid frame").into()), 
+                }
+            }
+            b'$' => {
+                // Bulk String
+                let line = &item_buf[1..size-2];
+                let bulk_size = atoi::<i64>(line);
+                if bulk_size.is_none() {
+                    return Err("Invalid Protocol4".into());
+                }
+                if bulk_size.unwrap() == -1 {
+                    Ok(Frame::Null)
+                } else {
+                    let data = self.read_bulk(bulk_size.unwrap() as usize).await?;
+                    Ok(Frame::Bulk(data.into()))
+                }
+            }
+            actual => Err(format!("protocol error; invalid frame type byte `{}`", actual).into()),
+        }
+    }
+
+    async fn read_bulk(&mut self, size: usize) -> Result<Vec<u8>> {
+        if size == 0 {
+            // Process Zero Size Bulk String
+            let mut buf = [0; 2];
+            self.stream.read_exact(&mut buf).await?;
+            return Ok("".into());
+        }
+        let mut buf = vec![0; size+2];
+        let len = self.stream.read_exact(&mut buf).await?;
+        if len < size {
+            return Err("Read size not correct".into());
+        }
+        Ok(buf[0..size].to_vec())
+    }
+
+    async fn read_line(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let mut rbuf = [0; 1];
+        let mut size: usize = 0;
+        let mut i = 0;
+        loop {
+            let len = self.stream.read_exact(&mut rbuf).await?;
+            if len == 0 {
+                break;
+            }
+            size += len;
+            buf[i] = rbuf[0];
+            i += 1;
+            if rbuf[0] == b'\n' {
+                break;
+            }
+        }
+        Ok(size)
     }
 
     /// Tries to parse a frame from the buffer. If the buffer contains enough
@@ -138,7 +263,9 @@ impl Connection {
             //
             // We do not want to return `Err` from here as this "error" is an
             // expected runtime condition.
-            Err(Incomplete) => Ok(None),
+            Err(Incomplete) => {
+                Ok(None)
+            }
             // An error was encountered while parsing the frame. The connection
             // is now in an invalid state. Returning `Err` from here will result
             // in the connection being closed.

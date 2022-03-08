@@ -1,5 +1,5 @@
-use super::{frame::Frame, parser::Parse, connection::Connection};
-use crate::{server::Result, commands::asyncs::get_client, encoding::KeyEncoder};
+use super::{frame::Frame, parser::{Parse, ParseError}, connection::Connection};
+use crate::{server::Result, commands::asyncs::get_client, encoding::KeyEncoder, metrics::{REQUEST_CMD_COUNTER, REQUEST_COUNTER, REQUEST_CMD_FINISH_COUNTER}};
 
 pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connection) -> Result<()> {
     let frame = match &cmd[..] {
@@ -9,10 +9,15 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
         "set" => {
             cmd_set(parse, conn).await
         }
+        "ping" => {
+            cmd_ping(parse, conn).await
+        }
         _ => {
-            cmd_unknown(cmd, parse, conn).await
+            cmd_unknown(cmd.clone(), parse, conn).await
         }
     };
+    REQUEST_COUNTER.inc();
+    REQUEST_CMD_COUNTER.with_label_values(&[&cmd]).inc();
     match frame {
         Ok(frame) => {
             conn.write_frame(&frame).await?;
@@ -22,6 +27,7 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
             conn.write_frame(&err_frame).await?;
         }
     }
+    REQUEST_CMD_FINISH_COUNTER.with_label_values(&[&cmd]).inc();
     parse.finish()?;
     Ok(())
 }
@@ -53,4 +59,18 @@ async fn cmd_set(parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
 async fn cmd_unknown(cmd: String, _parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
     println!("Err Unknown Command {}", &cmd);
     Err(format!("Unknown Command {}", cmd).into())
+}
+
+async fn cmd_ping(parse: &mut Parse, _conn: &mut Connection) -> Result<Frame> {
+    match parse.next_string() {
+        Ok(msg) => {
+            Ok(Frame::Bulk(msg.into()))
+        }
+        Err(ParseError::EndOfStream) => {
+            Ok(Frame::Simple("PONG".to_string()))
+        }
+        Err(e) => {
+            Err(e.into())
+        }
+    }
 }

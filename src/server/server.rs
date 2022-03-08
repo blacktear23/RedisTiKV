@@ -1,4 +1,8 @@
+use std::time::Duration;
+
 use tokio::net::{TcpListener, TcpStream};
+use tokio::time;
+use crate::metrics::CURRENT_CONNECTION_COUNTER;
 use crate::utils::tokio_spawn;
 
 use super::commands::process_command;
@@ -12,27 +16,57 @@ pub async fn self_server(port: u16) -> Result<()> {
     println!("Listening on {}", addr);
     let listener = TcpListener::bind(addr).await?;
     loop {
-        let (sock, _) = listener.accept().await?;
+        let sock = do_accept(&listener).await?;
+        CURRENT_CONNECTION_COUNTER.inc();
         tokio_spawn(async move {
-            match handle_connection(sock).await {
-                Ok(_) => {}
-                Err(e) => {
-                    println!("Handle connection got error: {}", e.to_string());
-                }
+            if let Err(e) = handle_connection(sock).await {
+                println!("Handle connection got error: {}", e.to_string());
             }
+            CURRENT_CONNECTION_COUNTER.dec();
         });
     }
 }
 
-async fn handle_connection(mut sock: TcpStream) -> Result<()> {
+async fn do_accept(listener: &TcpListener) -> Result<TcpStream> {
+    let mut backoff = 1;
+    loop {
+        match listener.accept().await {
+            Ok((socket, _)) => return Ok(socket),
+            Err(err) => {
+                println!("Accept Error! {:?}", &err);
+                if backoff > 32 {
+                    return Err(err.into())
+                }
+            }
+        }
+
+        // Pause execution until the back off period elapses.
+        time::sleep(Duration::from_secs(backoff)).await;
+
+        // Double the back off
+        backoff *= 2;
+    }
+}
+
+async fn handle_connection(sock: TcpStream) -> Result<()> {
     let mut conn = Connection::new(sock);
     loop {
-        let maybe_frame = conn.read_frame().await?;
+        let maybe_frame = tokio::select! {
+            res = conn.read_request() => res?,
+        };
+        /* 
+        let maybe_frame = tokio::select! {
+            res = conn.read_frame() => res?,
+        };
+        */
         let frame = match maybe_frame {
             Some(frame) => frame,
-            None => return Ok(()),
+            None => {
+                println!("Alert Got None Command");
+                return Ok(());
+            }
         };
-
+        // println!("{:?}", &frame);
         handle_frame(frame, &mut conn).await?;
     }
 }

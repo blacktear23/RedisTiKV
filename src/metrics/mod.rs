@@ -10,9 +10,17 @@ lazy_static! {
         register_int_gauge!("redistikv_instance_id", "Instance ID").unwrap();
     pub static ref REQUEST_COUNTER: IntCounter =
         register_int_counter!("redistikv_requests", "Request counter").unwrap();
+    pub static ref CURRENT_CONNECTION_COUNTER: IntGauge =
+        register_int_gauge!("redistikv_current_connections", "Current connection counter").unwrap();
     pub static ref REQUEST_CMD_COUNTER: IntCounterVec = register_int_counter_vec!(
         "redistikv_command_requests",
         "Request command counter",
+        &["cmd"]
+    )
+    .unwrap();
+    pub static ref REQUEST_CMD_FINISH_COUNTER: IntCounterVec = register_int_counter_vec!(
+        "redistikv_command_requests_finish",
+        "Request command finish counter",
         &["cmd"]
     )
     .unwrap();
@@ -63,5 +71,6 @@ pub fn get_info_string() -> String {
         REQUEST_CMD_COUNTER.with_label_values(&["hexists"]).get(),
         REQUEST_CMD_COUNTER.with_label_values(&["hdel"]).get(),
     );
+    let _ = REQUEST_CMD_FINISH_COUNTER.with_label_values(&["get"]).get();
     return info;
 }
