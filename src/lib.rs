@@ -13,6 +13,7 @@ extern crate gperftools;
 extern crate thiserror;
 extern crate bytes;
 extern crate atoi;
+extern crate bytebuffer;
 
 mod init;
 mod encoding;

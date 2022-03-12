@@ -2,6 +2,7 @@ use super::{frame::Frame, parser::{Parse, ParseError}, connection::Connection};
 use crate::{server::Result, commands::asyncs::get_client, encoding::KeyEncoder, metrics::{REQUEST_CMD_COUNTER, REQUEST_COUNTER, REQUEST_CMD_FINISH_COUNTER}};
 
 pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connection) -> Result<()> {
+    let mut check_finish = true;
     let frame = match &cmd[..] {
         "get" => {
             cmd_get(parse, conn).await
@@ -13,6 +14,7 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
             cmd_ping(parse, conn).await
         }
         _ => {
+            check_finish = false;
             cmd_unknown(cmd.clone(), parse, conn).await
         }
     };
@@ -20,15 +22,17 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
     REQUEST_CMD_COUNTER.with_label_values(&[&cmd]).inc();
     match frame {
         Ok(frame) => {
-            conn.write_frame(&frame).await?;
+            conn.write_frame_buf(&frame).await?;
         }
         Err(err) => {
             let err_frame = Frame::Error(format!("ERR {}", err.to_string()));
-            conn.write_frame(&err_frame).await?;
+            conn.write_frame_buf(&err_frame).await?;
         }
     }
     REQUEST_CMD_FINISH_COUNTER.with_label_values(&[&cmd]).inc();
-    parse.finish()?;
+    if check_finish {
+        parse.finish()?;
+    }
     Ok(())
 }
 

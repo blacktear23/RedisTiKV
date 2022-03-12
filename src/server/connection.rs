@@ -1,9 +1,11 @@
 use crate::server::frame::{self, Frame};
 
 use atoi::atoi;
+use bytebuffer::ByteBuffer;
 use bytes::{Buf, BytesMut};
-use std::io::{self, Cursor};
-use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter};
+use tokio::time::timeout;
+use std::io::{self, Cursor, Write};
+use tokio::io::{AsyncReadExt, AsyncWriteExt, BufWriter, BufReader};
 use tokio::net::TcpStream;
 use crate::server::Result;
 
@@ -24,7 +26,7 @@ pub struct Connection {
     // The `TcpStream`. It is decorated with a `BufWriter`, which provides write
     // level buffering. The `BufWriter` implementation provided by Tokio is
     // sufficient for our needs.
-    stream: BufWriter<TcpStream>,
+    stream: BufReader<TcpStream>,
 
     // The buffer for reading frames.
     buffer: BytesMut,
@@ -35,7 +37,7 @@ impl Connection {
     /// are initialized.
     pub fn new(socket: TcpStream) -> Connection {
         Connection {
-            stream: BufWriter::new(socket),
+            stream: BufReader::new(socket),
             // Default to a 4KB read buffer. For the use case of mini redis,
             // this is fine. However, real applications will want to tune this
             // value to their specific use case. There is a high likelihood that
@@ -103,7 +105,7 @@ impl Connection {
 
     pub async fn read_request(&mut self) -> Result<Option<Frame>> {
         let mut start_buf = [0; 4096];
-        let size = self.read_line(&mut start_buf).await?;
+        let size = self.read_line_no_timeout(&mut start_buf).await?;
         // println!("Request First Line {:?}", &start_buf[0..size]);
         if size == 0 || start_buf[0] != b'*' {
             return Err("Invalid Protocol1".into());
@@ -176,18 +178,18 @@ impl Connection {
         if size == 0 {
             // Process Zero Size Bulk String
             let mut buf = [0; 2];
-            self.stream.read_exact(&mut buf).await?;
+            self.read_exact_timeout(&mut buf).await?;
             return Ok("".into());
         }
         let mut buf = vec![0; size+2];
-        let len = self.stream.read_exact(&mut buf).await?;
+        let len = self.read_exact_timeout(&mut buf).await?;
         if len < size {
             return Err("Read size not correct".into());
         }
         Ok(buf[0..size].to_vec())
     }
 
-    async fn read_line(&mut self, buf: &mut [u8]) -> Result<usize> {
+    async fn read_line_no_timeout(&mut self, buf: &mut [u8]) -> Result<usize> {
         let mut rbuf = [0; 1];
         let mut size: usize = 0;
         let mut i = 0;
@@ -204,6 +206,33 @@ impl Connection {
             }
         }
         Ok(size)
+    }
+
+    async fn read_line(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let mut rbuf = [0; 1];
+        let mut size: usize = 0;
+        let mut i = 0;
+        loop {
+            let len = self.read_exact_timeout(&mut rbuf).await?;
+            if len == 0 {
+                break;
+            }
+            size += len;
+            buf[i] = rbuf[0];
+            i += 1;
+            if rbuf[0] == b'\n' {
+                break;
+            }
+        }
+        Ok(size)
+    }
+
+    async fn read_exact_timeout(&mut self, buf: &mut [u8]) -> Result<usize> {
+        let my_duration = tokio::time::Duration::from_millis(500);
+        match timeout(my_duration, self.stream.read_exact(buf)).await? {
+            Ok(size) => Ok(size),
+            Err(e) => Err(e.into()),
+        }
     }
 
     /// Tries to parse a frame from the buffer. If the buffer contains enough
@@ -359,6 +388,63 @@ impl Connection {
         self.stream.write_all(&buf.get_ref()[..pos]).await?;
         self.stream.write_all(b"\r\n").await?;
 
+        Ok(())
+    }
+
+    pub async fn write_frame_buf(&mut self, frame: &Frame) -> io::Result<()> {
+        let mut buf = ByteBuffer::new();
+        match frame {
+            Frame::Array(val) => {
+                buf.write_u8(b'*');
+                self.write_decimal_buf(&mut buf, val.len() as i64)?;
+                for entry in &**val {
+                    self.write_value_buf(&mut buf, entry)?;
+                }
+            }
+            _ => self.write_value_buf(&mut buf, frame)?,
+        }
+        self.stream.write_all(&buf.to_bytes()).await?;
+        self.stream.flush().await
+    }
+
+    fn write_decimal_buf(&mut self, buf: &mut ByteBuffer, val: i64) -> io::Result<()> {
+        let mut vbuf = [0u8; 20];
+        let mut vbuf = Cursor::new(&mut vbuf[..]);
+        write!(&mut vbuf, "{}", val)?;
+        let pos = vbuf.position() as usize;
+        buf.write_all(&vbuf.get_ref()[..pos])?;
+        buf.write_all(b"\r\n")?;
+        Ok(())
+    }
+
+    fn write_value_buf(&mut self, buf: &mut ByteBuffer, frame: &Frame) -> io::Result<()> {
+        match frame {
+            Frame::Simple(val) => {
+                buf.write_u8(b'+');
+                buf.write_all(val.as_bytes())?;
+                buf.write_all(b"\r\n")?;
+            }
+            Frame::Error(val) => {
+                buf.write_u8(b'-');
+                buf.write_all(val.as_bytes())?;
+                buf.write_all(b"\r\n")?;
+            }
+            Frame::Integer(val) => {
+                buf.write_u8(b':');
+                self.write_decimal_buf(buf, *val)?;
+            }
+            Frame::Null => {
+                buf.write_all(b"$-1\r\n")?;
+            }
+            Frame::Bulk(val) => {
+                let len = val.len();
+                buf.write_u8(b'$');
+                self.write_decimal_buf(buf, len as i64)?;
+                buf.write_all(val)?;
+                buf.write_all(b"\r\n")?;
+            }
+            Frame::Array(_val) => unreachable!(),
+        }
         Ok(())
     }
 }

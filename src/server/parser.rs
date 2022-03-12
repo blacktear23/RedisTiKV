@@ -120,6 +120,7 @@ impl Parse {
         if self.parts.next().is_none() {
             Ok(())
         } else {
+            println!("more parameters: {:?}", &self.parts);
             Err("protocol error; expected end of frame, but there was more".into())
         }
     }
