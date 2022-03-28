@@ -4,18 +4,23 @@ use crate::{
     metrics::*,
     utils::{tokio_spawn, redis_resp, redis_resp_with_ctx, resp_int, async_execute}, encoding::KeyEncoder,
 };
-use super::asyncs::string::*;
+use super::{asyncs::string::*, errors::AsyncResult};
 
 pub fn tikv_raw_get(ctx: &Context, args: Vec<RedisString>) -> RedisResult {
-    REQUEST_COUNTER.inc();
-    REQUEST_CMD_COUNTER.with_label_values(&["get"]).inc();
-    if args.len() < 2 {
-        return Err(RedisError::WrongArity);
-    }
-    let mut args = args.into_iter().skip(1);
-    let key = args.next_str()?;
+    let cargs: Vec<String> = args
+        .into_iter()
+        .skip(1)
+        .map(|s| s.to_string())
+        .collect();
+
     async_execute(ctx, async move {
-        do_async_rawkv_get(key).await
+        REQUEST_COUNTER.inc();
+        REQUEST_CMD_COUNTER.with_label_values(&["get"]).inc();
+        if cargs.len() < 1 {
+            return AsyncResult::Err("wrong arity".to_string().into())
+        }
+        let key = &cargs[0];
+        do_async_rawkv_get(&key).await
     })
 }
 
