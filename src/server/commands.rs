@@ -26,7 +26,7 @@ pub async fn process_command(cmd: String, parse: &mut Parse, conn: &mut Connecti
             Err(err) => {
                 let err_frame = Frame::Error(format!("ERR {}", err.to_string()));
                 conn.write_frame_buf(&err_frame).await?;
-                Ok(());
+                return Ok(());
             }
             Ok(()) => {}
         }
