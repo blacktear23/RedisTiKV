@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use tokio::net::{TcpListener, TcpStream};
+use async_std::net::{TcpListener, TcpStream};
 use tokio::time;
 use crate::metrics::CURRENT_CONNECTION_COUNTER;
 use crate::utils::tokio_spawn;
